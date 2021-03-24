@@ -322,12 +322,12 @@ namespace balance_controller{
     //! WSHY: read joint position command
     std::vector<double> & commands = *commands_buffer.readFromRT();
      //std::cout<<"++++++++++++++++++"<<std::endl;
-     for(int i=0;i<commands.size();i++){
-         if(commands[i]!=0){
-             std::cout<<commands[i]<<std::endl;
-         }
+//     for(int i=0;i<commands.size();i++){
+//         if(commands[i]!=0){
+//             std::cout<<commands[i]<<std::endl;
+//         }
 
-     }
+//     }
      //std::cout<<"++++++++++++++++++"<<std::endl;
 //    LimbVector & foot_posiion_commands = *command_foot_buffer.readFromRT();
 //    LimbVector & foot_velocity_commands = *command_foot_vel_buffer.readFromRT();
@@ -615,9 +615,9 @@ namespace balance_controller{
     robot_state->setCurrentLimbJoints(all_joint_positions);
     robot_state->setCurrentLimbJointVelocities(all_joint_velocities);
 
-    ROS_ERROR("State Estimate Position in X : %f",robot_state_handle.getPosition()[0]);
-    ROS_ERROR("State Estimate Position in Y : %f",robot_state_handle.getPosition()[1]);
-    ROS_ERROR("State Estimate Position in Z : %f",robot_state_handle.getPosition()[2]);
+    // ROS_ERROR("State Estimate Position in X : %f",robot_state_handle.getPosition()[0]);
+    // ROS_ERROR("State Estimate Position in Y : %f",robot_state_handle.getPosition()[1]);
+    // ROS_ERROR("State Estimate Position in Z : %f",robot_state_handle.getPosition()[2]);
     Pose current_base_pose = Pose(Position(robot_state_handle.getPosition()[0],
                                   robot_state_handle.getPosition()[1],
                                   robot_state_handle.getPosition()[2]),

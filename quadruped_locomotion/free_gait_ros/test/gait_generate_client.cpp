@@ -870,7 +870,7 @@ using namespace free_gait;
             if(crawl_flag)
               {
                 footstep_msg_.average_velocity = 0.3;
-                footstep_msg_.profile_height = 0.23;
+                footstep_msg_.profile_height = 0.13;
                 footstep_msg_.profile_type = "square";
               }
             //            if(pace_flag)

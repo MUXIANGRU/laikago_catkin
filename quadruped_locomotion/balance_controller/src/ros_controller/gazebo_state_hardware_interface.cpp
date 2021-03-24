@@ -335,8 +335,8 @@ if(use_gazebo_feedback)
     robot_state_data_.position[0] = base_link_ptr_->GetWorldCoGPose().pos.x;
     robot_state_data_.position[1] = base_link_ptr_->GetWorldCoGPose().pos.y;
     robot_state_data_.position[2] = base_link_ptr_->GetWorldCoGPose().pos.z;
-      ROS_INFO("Base position: x=%f,y=%f,z=%f",robot_state_data_.position[0],
-          robot_state_data_.position[1],robot_state_data_.position[2]);
+//      ROS_INFO("Base position: x=%f,y=%f,z=%f",robot_state_data_.position[0],
+//          robot_state_data_.position[1],robot_state_data_.position[2]);
     robot_state_data_.orientation[0] = base_link_ptr_->GetWorldCoGPose().rot.w;
     robot_state_data_.orientation[1] = base_link_ptr_->GetWorldCoGPose().rot.x;
     robot_state_data_.orientation[2] = base_link_ptr_->GetWorldCoGPose().rot.y;
