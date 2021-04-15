@@ -46,11 +46,14 @@ balance_controller:
       load_factor: 1
 single_leg_controller:
   x_direction:
-    kp: 3000
-    kd: 1000
+    kp: 150
+    kd: 50
   y_direction:
-    kp: 3000
-    kd: 1000
+    kp: 150
+    kd: 50
   z_direction:
-    kp: 3000
-    kd: 1000
+    kp: 150
+    kd: 50
+
+
+

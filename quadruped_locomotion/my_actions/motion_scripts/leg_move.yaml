@@ -12,7 +12,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [0.42, 0.25, 0]
+          position: [0.24, 0.18, 0]
     - footstep:
         name: RH_LEG
         profile_type: triangle
@@ -20,7 +20,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [-0.42, -0.25, 0]
+          position: [-0.24, -0.18, 0]
   - step:
     - footstep:
         name: RF_LEG
@@ -29,7 +29,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [0.42, -0.25, 0]
+          position: [0.24, -0.18, 0]
     - footstep:
         name: LH_LEG
         profile_type: triangle
@@ -37,7 +37,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [-0.42, 0.25, 0]
+          position: [-0.24, 0.18, 0]
   - step:
     - footstep:
         name: LF_LEG
@@ -46,7 +46,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [0.5, 0.25, 0]
+          position: [0.28, 0.18, 0]
   - step:
     - footstep:
         name: RH_LEG
@@ -55,7 +55,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [-0.3, -0.25, 0]
+          position: [-0.3, -0.18, 0]
   - step:
     - footstep:
         name: RF_LEG
@@ -64,7 +64,7 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [0.5, -0.25, 0]
+          position: [0.28, -0.18, 0]
   - step:
     - footstep:
         name: LH_LEG
@@ -73,4 +73,4 @@ steps:
         average_velocity: 0.15
         target:
           frame: foot_print
-          position: [-0.3, 0.25, 0]
+          position: [-0.28, 0.18, 0]

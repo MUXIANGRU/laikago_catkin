@@ -4,6 +4,8 @@
   <arg name="kinect_enabled" default="true"/>
   <arg name="robot_namespace" default="/"/>
 
+<include file="$(find xsens_driver)/launch/xsens_driver.launch">
+  </include>
   <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find simpledog)/urdf/quadruped_model.urdf.xacro'
   inorder
   robot_namespace:=$(arg robot_namespace)
@@ -37,6 +39,10 @@
 <!-- </include> -->
 <!-- <remap from="/imu/data" to="/imu" /> -->
 <param name="/imu_topic_name" value="/imu/data" />
+<param name="/use_kin_state" value="true" />
+<param name="/use_pronto_pose" value="false" />
+<param name="/use_pronto_twist" value="true" />
+<param name="/use_imu_orientation" value="true" />
 
 <rosparam command="load" file="$(find balance_controller)/config/control_laikago.yaml" />
 <rosparam command="load" file="$(find balance_controller)/config/controller_gains.yaml" />

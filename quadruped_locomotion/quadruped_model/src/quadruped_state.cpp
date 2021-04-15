@@ -141,7 +141,7 @@ const Position QuadrupedState::getPositionBaseToFootInBaseFrame(const LimbEnum& 
   Pose foot_pose;
   FowardKinematicsSolve(jointPositions, limb, foot_pose);
   footPoseInBaseFrame_[limb] = foot_pose;
-  //  std::cout<<"in getPositionBaseToFootInBaseFrame()  "<<foot_pose.getPosition()<<std::endl;
+  //std::cout<<"in getPositionBaseToFootInBaseFrame()  "<<foot_pose.getPosition()<<std::endl;
 
   return foot_pose.getPosition();
 }

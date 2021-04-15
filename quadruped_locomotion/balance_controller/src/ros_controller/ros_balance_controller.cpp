@@ -272,6 +272,8 @@ namespace balance_controller{
 
     base_command_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_command", log_length_);
     base_actual_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_actual", log_length_);
+    pos_error_pub = node_handle.advertise<geometry_msgs::Pose>("/log/pos_error",log_length_);
+    vel_error_pub = node_handle.advertise<geometry_msgs::Twist>("/log/twist_error",log_length_);
     ROS_INFO("Balance Controller initialized");
     return true;
   };
@@ -921,6 +923,8 @@ namespace balance_controller{
 //        current_time.data.setNow(ros::Time::now());
 //        log_time_.push_back(current_time);
         geometry_msgs::WrenchStamped vmc_force_torque, desired_vmc_ft;
+        geometry_msgs::Pose pos_error;
+        geometry_msgs::Twist twist_error;
         vmc_force_torque.header.frame_id = "/base";
         vmc_force_torque.header.stamp = ros::Time::now();
         desired_vmc_ft.header.frame_id = "/base";
@@ -936,6 +940,27 @@ namespace balance_controller{
                                            vmc_force_torque.wrench.force);
         kindr_ros::convertToRosGeometryMsg(Position(net_torque.vector()),
                                            vmc_force_torque.wrench.torque);
+//        kindr_ros::convertToRosGeometryMsg(Position(virtual_model_controller_->getPosError()),
+//                                           pos_error);
+//        kindr_ros::convertToRosGeometryMsg(LinearVelocity(virtual_model_controller_->getLinearVelError()),
+//                                           pos_error);
+        pos_error.position.x = virtual_model_controller_->getPosError().x();
+        pos_error.position.y = virtual_model_controller_->getPosError().y();
+        pos_error.position.z = virtual_model_controller_->getPosError().z();
+        twist_error.linear.x = virtual_model_controller_->getLinearVelError().x();
+        twist_error.linear.y = virtual_model_controller_->getLinearVelError().y();
+        twist_error.linear.z = virtual_model_controller_->getLinearVelError().z();
+        twist_error.angular.x = virtual_model_controller_->getAngularVelError().x();
+        twist_error.angular.y = virtual_model_controller_->getAngularVelError().y();
+        twist_error.angular.z = virtual_model_controller_->getAngularVelError().z();
+
+//        std::cout<<"twist_error.linear.x   "<<twist_error.linear.x<<std::endl;
+//        std::cout<<"twist_error.linear.y   "<<twist_error.linear.y<<std::endl;
+//        std::cout<<"twist_error.linear.z   "<<twist_error.linear.z<<std::endl;
+//        std::cout<<"twist_error.angular.x   "<<twist_error.angular.x<<std::endl;
+//        std::cout<<"twist_error.angular.y   "<<twist_error.angular.y<<std::endl;
+//        std::cout<<"twist_error.angular.z   "<<twist_error.angular.z<<std::endl;
+
         vitual_force_torque_.push_back(vmc_force_torque);
         desired_vitual_force_torque_.push_back(desired_vmc_ft);
 
@@ -1048,6 +1073,8 @@ namespace balance_controller{
         leg_states_.push_back(leg_state);
         joint_command_.push_back(joint_command);
         joint_actual_.push_back(joint_actual);
+        pos_error_.push_back(pos_error);
+        vel_error_.push_back(twist_error);
 
         sim_assiants::FootContacts desired_contact;
         desired_contact.foot_contacts.resize(4);
@@ -1575,13 +1602,17 @@ namespace balance_controller{
             ROS_ERROR_ONCE("real robot coming there!!!!!!!!!!!!!!!");
             real_contact_force_.at(limb).z() = robot_state_handle.contact_pressure_[i];
 //            std::cout<<robot_state_handle.contact_pressure_[i]<<"  "<<initial_pressure[i]<<std::endl;
-            if((robot_state_handle.contact_pressure_[i] - initial_pressure[i]) > contact_pressure_bias)
+            if((robot_state_handle.contact_pressure_[i]) > 25.0)
               {
+                ROS_INFO("contact!!!!!!!!!!!!!!");
+                std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
 //                robot_state_handle.foot_contact_[i] = 1;
                 real_contact_.at(limb) = true;
               }else {
+                ROS_INFO("miss contact!!!!!!!!!!!!!!");
+                std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
 //                robot_state_handle.foot_contact_[i] = 0;
-                real_contact_.at(limb) = true;
+                real_contact_.at(limb) = false;
               }
           }
 
@@ -1801,6 +1832,8 @@ namespace balance_controller{
     motor_status_word_.clear();
     base_actual_pose_.clear();
     base_command_pose_.clear();
+    pos_error_.clear();
+    vel_error_.clear();
     for(int i = 0;i<joints.size();i++)
       {
         joints[i].setCommand(robot_state_handle.getJointEffortRead()[i]);
@@ -1876,6 +1909,10 @@ namespace balance_controller{
         vmc_info_pub_.publish(vitual_force_torque_[index]);
         desired_vmc_info_pub_.publish(desired_vitual_force_torque_[index]);
         motor_status_word_pub_.publish(motor_status_word_[index]);
+        pos_error_pub.publish(pos_error_[index]);
+        vel_error_pub.publish(vel_error_[index]);
+
+
         ros::Duration(0.0025).sleep();
       }
     return true;

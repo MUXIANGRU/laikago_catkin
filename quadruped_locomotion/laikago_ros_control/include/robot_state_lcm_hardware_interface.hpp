@@ -51,6 +51,7 @@
 #include "ros/advertise_service_options.h"
 #include "controller_manager_msgs/SwitchController.h"
 #include "controller_manager_msgs/ListControllers.h"
+#include <std_msgs/Float64MultiArray.h>
 
 namespace laikago_ros_control {
 
@@ -214,7 +215,7 @@ private:
   ros::Publisher Imu_data_pub_;
   ros::Publisher joint_state_pub_;
   ros::Publisher lf_foot_contact_force_pub,rf_foot_contact_force_pub,
-  rh_foot_contact_force_pub,lh_foot_contact_force_pub;
+  rh_foot_contact_force_pub,lh_foot_contact_force_pub,all_leg_contact_state_pub,joint_command_pub;
   std::string imu_topic_name_;
 
   urdf::JointConstSharedPtr joint_urdf;
@@ -222,6 +223,8 @@ private:
   ros::ServiceServer laikago_position_init_server_,laikago_position_init_stop_server_,laikago_controller_switch_server_;
   bool init_flag,test_flag,laikago_position_init_buffer_,last_laikago_position_init_buffer_,laikago_position_init_stop_buffer_;
   std::string controller_name;
+  std_msgs::Float64MultiArray footstate_;
+  sensor_msgs::JointState joint_command_to_print;
 };
 
 

@@ -103,7 +103,7 @@ bool StateEstimateController::init(hardware_interface::RobotStateInterface* hard
 
     //MXR::NOTE assume that all leg on the ground
     for(int i = 0;i<4;i++){
-        ROS_WARN("[program coming there]");
+        //ROS_WARN("[program coming there]");
         robot_state_handle.foot_contact_[i] = 1;
 }
 
@@ -197,7 +197,10 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
         robot_state_.rh_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[2];
         robot_state_.lh_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[3];
 
-//    ROS_INFO("RF contact force is : %f", robot_state_.rf_target.target_force[0].vector.z);
+        //ROS_INFO("LF contact force is : %f", robot_state_.lf_target.target_force[0].vector.z);
+        //ROS_INFO("RF contact force is : %f", robot_state_.rf_target.target_force[0].vector.z);
+        //ROS_INFO("RH contact force is : %f", robot_state_.rh_target.target_force[0].vector.z);
+        //ROS_INFO("LH contact force is : %f", robot_state_.lh_target.target_force[0].vector.z);
 
 // TODO: call a state estimate method to calculate the pose estimate of robot.
     for(int i=0;i<12;++i){
@@ -302,6 +305,10 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
 //        std::cout<<"I want to know the position.x: "<<robot_state_handle.position_[0]<<std::endl;
 //        std::cout<<"I want to know the position.y: "<<robot_state_handle.position_[1]<<std::endl;
 //        std::cout<<"I want to know the position.z: "<<robot_state_handle.position_[2]<<std::endl;
+//        std::cout<<"I want to know the orientation_.w: "<<robot_state_handle.orientation_[0]<<std::endl;
+//        std::cout<<"I want to know the orientation_.z: "<<robot_state_handle.orientation_[1]<<std::endl;
+//        std::cout<<"I want to know the orientation_.z: "<<robot_state_handle.orientation_[2]<<std::endl;
+//        std::cout<<"I want to know the orientation_.z: "<<robot_state_handle.orientation_[3]<<std::endl;
       }
 
     if(real_robot)

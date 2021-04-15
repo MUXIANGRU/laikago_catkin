@@ -390,6 +390,15 @@ std::ostream& operator << (std::ostream& out, const VirtualModelController& moti
   out << "gravity comp k: " << motionController.gravityCompensationForcePercentage_ << endl;
   return out;
 }
+LocalAngularVelocity VirtualModelController::getAngularVelError() const {
+    return angularVelocityErrorInControlFrame_;
+}
+LinearVelocity VirtualModelController::getLinearVelError() const {
+    return linearVelocityErrorInControlFrame_;
+}
+Position VirtualModelController::getPosError() const {
+    return positionErrorInControlFrame_;
+}
 
 Force VirtualModelController::getDesiredVirtualForceInBaseFrame() const {
   return virtualForceInBaseFrame_;

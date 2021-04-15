@@ -151,7 +151,9 @@ namespace balance_controller {
      */
     ros::Publisher joint_command_pub_, base_command_pub_, base_actual_pub_, joint_actual_pub_,
     leg_state_pub_, contact_desired_pub_, leg_phase_pub_, desired_robot_state_pub_, actual_robot_state_pub_,
-    motor_status_word_pub_, vmc_info_pub_, desired_vmc_info_pub_;
+    motor_status_word_pub_, vmc_info_pub_, desired_vmc_info_pub_,pos_error_pub,vel_error_pub;
+    std::vector<geometry_msgs::Pose> pos_error_;
+    std::vector<geometry_msgs::Twist> vel_error_;
     std::vector<nav_msgs::Odometry> base_command_pose_, base_actual_pose_;
     std::vector<sensor_msgs::JointState> joint_command_, joint_actual_;
     std::vector<std_msgs::Int8MultiArray> leg_states_;

@@ -104,7 +104,9 @@ class VirtualModelController : public MotionControllerBase
 
   friend std::ostream& operator << (std::ostream& out, const VirtualModelController& motionController);
 
-
+  LocalAngularVelocity getAngularVelError() const;
+  LinearVelocity getLinearVelError() const;
+  Position getPosError() const;
   Force getDesiredVirtualForceInBaseFrame() const;
   Torque getDesiredVirtualTorqueInBaseFrame() const;
   void getDistributedVirtualForceAndTorqueInBaseFrame(Force& netForce, Torque& netTorque) const;

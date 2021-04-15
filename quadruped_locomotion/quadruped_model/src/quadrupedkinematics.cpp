@@ -124,7 +124,9 @@ Position QuadrupedKinematics:: getPositionBaseToLegMassCenterInBaseFrame(const L
 //get foot position in hip_frame from foot position in base_postion
 Position QuadrupedKinematics::getPositionFootToHipInHipFrame(const LimbEnum& limb, const Position& foot_position_in_base) const
 {
+    //std::cout<<hip_pose_in_base_.at(limb).inverseTransform(foot_position_in_base)<<std::endl;
   return hip_pose_in_base_.at(limb).inverseTransform(foot_position_in_base);
+
 }
 
 //using joint angles to compute cartesian_pose

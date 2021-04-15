@@ -225,8 +225,8 @@ void MyRobotSolver::model_initialization()
 bool MyRobotSolver::loadLimbModelFromURDF()
 {
     ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
-    ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
-    ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
+    //ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
+    //ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
 //  string lf_leg_urdf_dir_str = ros::package::getPath("quadruped_model") + "/urdf/simpledog_lf_leg.urdf";
   string lf_leg_urdf_dir_str = ros::package::getPath("quadruped_model") + "/urdf/quadruped_model_lf_leg.urdf";
   char* lf_leg_urdf_dir = (char*)lf_leg_urdf_dir_str.c_str();
@@ -531,8 +531,8 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
 //    std::cout<<"velocity_error_in_base  "<<velocity_error_in_base<<std::endl;
 //    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
 //    ROS_WARN_STREAM("Inertial Matrix :" <<QuadrupedRobotModel.IA<<std::endl);
-      kp_={300,300,300};
-      kd_={100,100,100};
+//      kp_={300,300,300};
+//      kd_={100,100,100};
     std::cout<<"+++++++++++++++++++++++++"<<std::endl;
     std::cout<<"kp_  "<<kp_<<"kd_  "<<kd_<<std::endl;
     std::cout<<"+++++++++++++++++++++++++"<<std::endl;
