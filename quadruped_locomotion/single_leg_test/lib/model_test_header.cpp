@@ -533,9 +533,9 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
 //    ROS_WARN_STREAM("Inertial Matrix :" <<QuadrupedRobotModel.IA<<std::endl);
 //      kp_={300,300,300};
 //      kd_={100,100,100};
-    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
-    std::cout<<"kp_  "<<kp_<<"kd_  "<<kd_<<std::endl;
-    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
+//    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
+//    std::cout<<"kp_  "<<kp_<<"kd_  "<<kd_<<std::endl;
+//    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
     VecTauAct = jacobian.transpose() * (kp_.cwiseProduct(position_error_in_base)
                                         + kd_.cwiseProduct(velocity_error_in_base))
                 + VecTauAct;

@@ -145,8 +145,8 @@ using namespace free_gait;
 
     sigma_st_0 = 0.8;
     sigma_st_1 = 0.8;
-    sigma_sw_0 = 1;
-    sigma_sw_1 = 1;
+    sigma_sw_0 = 1.0;
+    sigma_sw_1 = 1.0;
 
     step_msg_.base_auto.clear();
     step_msg_.base_target.clear();
@@ -159,6 +159,35 @@ using namespace free_gait;
 //    step_msg_.base_target.resize(1);
 //    step_msg_.base_auto.resize(1);
 //    step_msg_.footstep.resize(4);
+//    limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::LF_LEG].swing_status = true;
+//    limb_phase[LimbEnum::LF_LEG].stance_status = false;
+//    limb_phase[LimbEnum::LF_LEG].ready_to_swing = true;
+//    limb_phase[LimbEnum::LF_LEG].real_contact = false;
+
+//    limb_phase[LimbEnum::RF_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::RF_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::RF_LEG].swing_status = false;
+//    limb_phase[LimbEnum::RF_LEG].stance_status = true;
+//    limb_phase[LimbEnum::RF_LEG].ready_to_swing = false;
+//    limb_phase[LimbEnum::RF_LEG].real_contact = true;
+
+//    limb_phase[LimbEnum::RH_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::RH_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::RH_LEG].swing_status = true;
+//    limb_phase[LimbEnum::RH_LEG].stance_status = false;
+//    limb_phase[LimbEnum::RH_LEG].ready_to_swing = true;
+//    limb_phase[LimbEnum::RH_LEG].real_contact = false;
+
+//    limb_phase[LimbEnum::LH_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::LH_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::LH_LEG].swing_status = false;
+//    limb_phase[LimbEnum::LH_LEG].stance_status = true;
+//    limb_phase[LimbEnum::LH_LEG].ready_to_swing = false;
+//    limb_phase[LimbEnum::LH_LEG].real_contact = true;
+
+ //just test for pace
     limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
     limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
     limb_phase[LimbEnum::LF_LEG].swing_status = true;
@@ -175,17 +204,17 @@ using namespace free_gait;
 
     limb_phase[LimbEnum::RH_LEG].swing_phase = 0;
     limb_phase[LimbEnum::RH_LEG].stance_phase = 0;
-    limb_phase[LimbEnum::RH_LEG].swing_status = true;
-    limb_phase[LimbEnum::RH_LEG].stance_status = false;
-    limb_phase[LimbEnum::RH_LEG].ready_to_swing = true;
-    limb_phase[LimbEnum::RH_LEG].real_contact = false;
+    limb_phase[LimbEnum::RH_LEG].swing_status = false;
+    limb_phase[LimbEnum::RH_LEG].stance_status = true;
+    limb_phase[LimbEnum::RH_LEG].ready_to_swing = false;
+    limb_phase[LimbEnum::RH_LEG].real_contact = true;
 
     limb_phase[LimbEnum::LH_LEG].swing_phase = 0;
     limb_phase[LimbEnum::LH_LEG].stance_phase = 0;
-    limb_phase[LimbEnum::LH_LEG].swing_status = false;
-    limb_phase[LimbEnum::LH_LEG].stance_status = true;
-    limb_phase[LimbEnum::LH_LEG].ready_to_swing = false;
-    limb_phase[LimbEnum::LH_LEG].real_contact = true;
+    limb_phase[LimbEnum::LH_LEG].swing_status = true;
+    limb_phase[LimbEnum::LH_LEG].stance_status = false;
+    limb_phase[LimbEnum::LH_LEG].ready_to_swing = true;
+    limb_phase[LimbEnum::LH_LEG].real_contact = false;
     base_auto_flag = false;
     base_target_flag = false;
     pace_flag =false;
@@ -207,7 +236,7 @@ using namespace free_gait;
     hip_dispacement.emplace(LimbEnum::LH_LEG, Position(0,step_displacement,0));
     hip_dispacement.emplace(LimbEnum::RH_LEG, Position(0,-step_displacement,0));
 
-    height_ = 0.40;
+    height_ = 0.37;
     sigma_st_0 = 0.2;
     sigma_st_1 = 0.2;
     sigma_sw_0 = 0.5;
@@ -497,7 +526,7 @@ using namespace free_gait;
       {
         free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
 
-        if(!robot_state_.isSupportLeg(limb) && limb_phase.at(limb).ready_to_swing)
+        if(!robot_state_.isSupportLeg(limb) && limb_phase.at(limb).ready_to_swing)     //for swing leg
           {
             LinearVelocity average_vel;
             average_vel.setZero();
@@ -515,7 +544,7 @@ using namespace free_gait;
 //            current_vel2D(0) = 0.0;
             current_vel2D(2) = 0.0;
             double z_hip = height - footprint_center_in_world(2);
-//            ROS_INFO("relative base height is : %f", z_hip);
+//            ROS_INFO("relative base height is : %f", z_hip);    MXR::NOTE: Z_HIP == height(髋关节垂直高度)
             double yaw_angle;
             EulerAnglesZyx ypr(robot_state_.getOrientationBaseToWorld());
             yaw_angle = ypr.setUnique().vector()(0);
@@ -1102,8 +1131,8 @@ using namespace free_gait;
 
 
 
-//      ROS_INFO("Update base Target Position : ");
-//      std::cout<<P_CoM_desired_<<std::endl;
+      //ROS_INFO("Update base Target Position : ");
+      //std::cout<<P_CoM_desired_<<std::endl;
   }
 
   Pose GaitGenerateClient::getDesiredBasePose()
@@ -1322,8 +1351,8 @@ using namespace free_gait;
 
             if(limb_phase.at(limb).swing_status){
               limb_phase.at(limb).swing_phase = limb_phase.at(limb).swing_phase + dt;
-    //          ROS_INFO("Leg %s is in swing phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
-    //                   limb_phase.at(limb).swing_phase, t_swing_);
+              ROS_INFO("Leg %s is in swing phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
+                       limb_phase.at(limb).swing_phase, t_swing_);
               if(limb_phase.at(limb).swing_phase>t_swing_ && is_contact)
                 {
                   //! WSHY: normal contacted
@@ -1351,8 +1380,8 @@ using namespace free_gait;
                 }*/
               } else if (limb_phase.at(limb).stance_status) {
                 limb_phase.at(limb).stance_phase = limb_phase.at(limb).stance_phase + dt;
-      //          ROS_INFO("Leg %s is in stance phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
-      //                   limb_phase.at(limb).stance_phase, t_stance_);
+                ROS_INFO("Leg %s is in stance phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
+                         limb_phase.at(limb).stance_phase, t_stance_);
                 if(limb_phase.at(limb).stance_phase>t_stance_ && is_contact)
                   {
                     if(pace_flag && limb_phase.at(limb).stance_phase<(t_stance_+t_swing_delay))

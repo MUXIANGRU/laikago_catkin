@@ -906,11 +906,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
     if(controller_name=="base_balance_controller"){
 
           ROS_WARN_ONCE("joint effort command[3] published!!!");
-                if(joint_effort_command_[3]>10.0){
-                    joint_effort_command_[3]=10.0;
+                if(joint_effort_command_[3]>20.0){
+                    joint_effort_command_[3]=20.0;
                 }
-                if(joint_effort_command_[3]<-10.0){
-                    joint_effort_command_[3]=-10.0;
+                if(joint_effort_command_[3]<-20.0){
+                    joint_effort_command_[3]=-20.0;
                 }
 
                  SendLowROS.motorCmd[FR_0].position = PosStopF;
@@ -920,11 +920,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
                  SendLowROS.motorCmd[FR_0].torque =joint_effort_command_[3];
 
         ROS_WARN_ONCE("joint effort command[4] published!!!");
-                 if(joint_effort_command_[4]>15.0){
-                     joint_effort_command_[4]=15.0;
+                 if(joint_effort_command_[4]>20.0){
+                     joint_effort_command_[4]=20.0;
                  }
-                 if(joint_effort_command_[4]<-15.0){
-                     joint_effort_command_[4]=-15.0;
+                 if(joint_effort_command_[4]<-20.0){
+                     joint_effort_command_[4]=-20.0;
                  }
 
                   SendLowROS.motorCmd[FR_1].position = PosStopF;
@@ -949,11 +949,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
 
 
         ROS_WARN_ONCE("joint effort command[0] published!!!");
-        if(joint_effort_command_[0]>10.0){
-            joint_effort_command_[0]=10.0;
+        if(joint_effort_command_[0]>20.0){
+            joint_effort_command_[0]=20.0;
         }
-        if(joint_effort_command_[0]<-10.0){
-            joint_effort_command_[0]=-10.0;
+        if(joint_effort_command_[0]<-20.0){
+            joint_effort_command_[0]=-20.0;
         }
 
          SendLowROS.motorCmd[FL_0].position = PosStopF;
@@ -963,11 +963,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
          SendLowROS.motorCmd[FL_0].torque =joint_effort_command_[0];
 
         ROS_WARN_ONCE("joint effort command[1] published!!!");
-                 if(joint_effort_command_[1]>15.0){
-                     joint_effort_command_[1]=15.0;
+                 if(joint_effort_command_[1]>20.0){
+                     joint_effort_command_[1]=20.0;
                  }
-                 if(joint_effort_command_[1]<-15.0){
-                     joint_effort_command_[1]=-15.0;
+                 if(joint_effort_command_[1]<-20.0){
+                     joint_effort_command_[1]=-20.0;
                  }
 
                   SendLowROS.motorCmd[FL_1].position = PosStopF;
@@ -992,11 +992,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
 
 
         ROS_WARN_ONCE("joint effort command[6] published!!!");
-        if(joint_effort_command_[6]>10.0){
-            joint_effort_command_[6]=10.0;
+        if(joint_effort_command_[6]>20.0){
+            joint_effort_command_[6]=20.0;
         }
-        if(joint_effort_command_[6]<-10.0){
-            joint_effort_command_[6]=-10.0;
+        if(joint_effort_command_[6]<-20.0){
+            joint_effort_command_[6]=-20.0;
         }
 
          SendLowROS.motorCmd[RR_0].position = PosStopF;
@@ -1006,11 +1006,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
          SendLowROS.motorCmd[RR_0].torque =joint_effort_command_[6];
 
          ROS_WARN_ONCE("joint effort command[7] published!!!");
-         if(joint_effort_command_[7]>15.0){
-             joint_effort_command_[7]=15.0;
+         if(joint_effort_command_[7]>20.0){
+             joint_effort_command_[7]=20.0;
          }
-         if(joint_effort_command_[7]<-15.0){
-             joint_effort_command_[7]=-15.0;
+         if(joint_effort_command_[7]<-20.0){
+             joint_effort_command_[7]=-20.0;
          }
          SendLowROS.motorCmd[RR_1].position = PosStopF;
          SendLowROS.motorCmd[RR_1].velocity = VelStopF;
@@ -1032,11 +1032,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
          SendLowROS.motorCmd[RR_2].torque =joint_effort_command_[8];
 
          ROS_WARN_ONCE("joint effort command[9] published!!!");
-         if(joint_effort_command_[9]>10.0){
-             joint_effort_command_[9]=10.0;
+         if(joint_effort_command_[9]>20.0){
+             joint_effort_command_[9]=20.0;
          }
-         if(joint_effort_command_[9]<-10.0){
-             joint_effort_command_[9]=-10.0;
+         if(joint_effort_command_[9]<-20.0){
+             joint_effort_command_[9]=-20.0;
          }
          SendLowROS.motorCmd[RL_0].position = PosStopF;
          SendLowROS.motorCmd[RL_0].velocity = VelStopF;
@@ -1045,11 +1045,11 @@ void RobotStateLcmHardwareInterface::write(const ros::Time &time, const ros::Dur
          SendLowROS.motorCmd[RL_0].torque =joint_effort_command_[9];
 
          ROS_WARN_ONCE("joint effort command[10] published!!!");
-         if(joint_effort_command_[10]>15.0){
-             joint_effort_command_[10]=15.0;
+         if(joint_effort_command_[10]>20.0){
+             joint_effort_command_[10]=20.0;
          }
-         if(joint_effort_command_[10]<-15.0){
-             joint_effort_command_[10]=-15.0;
+         if(joint_effort_command_[10]<-20.0){
+             joint_effort_command_[10]=-20.0;
          }
          SendLowROS.motorCmd[RL_1].position = PosStopF;
          SendLowROS.motorCmd[RL_1].velocity = VelStopF;

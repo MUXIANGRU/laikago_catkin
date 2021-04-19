@@ -1,27 +1,27 @@
 balance_controller:
   virtual_model_controller:
     heading:
-      kp: 700
+      kp: 650
       kd: 5
       kff: 1
     lateral:
-      kp: 700
+      kp: 650
       kd: 5
       kff: 1
     vertical:
-      kp: 700
+      kp: 650
       kd: 5
       kff: 1
     roll:
-      kp: 400
+      kp: 500
       kd: 10
       kff: 0.2
     pitch:
-      kp: 400
+      kp: 500
       kd: 10
       kff: 0.2
     yaw:
-      kp: 400
+      kp: 500
       kd: 10
       kff: 1
     gravity_compensation_percentage: 1.005
