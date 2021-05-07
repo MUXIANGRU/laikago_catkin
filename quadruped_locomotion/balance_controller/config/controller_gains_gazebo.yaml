@@ -9,15 +9,15 @@ balance_controller:
       kd: 4000
       kff: 10
     vertical:
-      kp: 8000
-      kd: 1000
+      kp: 10000
+      kd: 5000
       kff: 100
     roll:
-      kp: 8000
+      kp: 10000
       kd: 1000
       kff: 0.2
     pitch:
-      kp: 8000
+      kp: 10000
       kd: 1000
       kff: 0.2
     yaw:
@@ -46,13 +46,13 @@ balance_controller:
       load_factor: 1
 single_leg_controller:
   x_direction:
-    kp: 2000
-    kd: 500
+    kp: 300
+    kd: 100
   y_direction:
-    kp: 2000
-    kd: 500
+    kp: 300
+    kd: 100
   z_direction:
-    kp: 2000
-    kd: 500
+    kp: 300
+    kd: 100
 
 

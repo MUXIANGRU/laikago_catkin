@@ -529,6 +529,20 @@
          </property>
         </widget>
        </item>
+       <item row="0" column="4">
+        <widget class="QPushButton" name="readBotton">
+         <property name="text">
+          <string>readtxtfile</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="4">
+        <widget class="QPushButton" name="stopreadBotton">
+         <property name="text">
+          <string>stopread</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="JointVelocity">
@@ -1053,6 +1067,11 @@
         <string>Stop</string>
        </property>
       </widget>
+     </widget>
+     <widget class="QWidget" name="laikago_controller">
+      <attribute name="title">
+       <string>laikago_controller</string>
+      </attribute>
      </widget>
     </widget>
    </item>

@@ -226,7 +226,7 @@ int main(int argc, char **argv)
         control logic
         */
         lowState_pub.publish(lowState);
-        sendServoCmd();
+        sendServoCmd();  //MXR::NOTE publish the joint command from body.cpp
     }
     return 0;
 }

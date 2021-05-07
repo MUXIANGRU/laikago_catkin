@@ -111,9 +111,13 @@ public:
       ros::Rate rate(100);
       ros::Duration(0.5).sleep();
       cout<<"Current base position : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
+      std::cout<<"checkout for first position!!!!!!!!!!"<<std::endl;
       AdapterRos_.updateAdapterWithState();
+      std::cout<<"checkout for second position!!!!!!!!!!"<<std::endl;
       executor->reset(); //! WSHY: adapter update has wrong
+      std::cout<<"checkout for third position!!!!!!!!!!"<<std::endl;
       cout<<adapter->getState()<<endl;
+      std::cout<<"checkout for fourth position!!!!!!!!!!"<<std::endl;
       cout<<"Current base position : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
 //      //! WSHY: get the initial pose and set to the fisrt pose command
       state->setPositionWorldToBaseInWorldFrame(AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame());
@@ -293,7 +297,7 @@ public:
         is_start_gait = true;
         parameters->footstepParameters.minimumDuration_ = 0.3;
         parameters->baseTargetParameters.minimumDuration = 0.3;
-        gait_generate_client_.initializeTrot(0.8,0.8);
+        gait_generate_client_.initializeTrot(0.4,0.4);
 //        gait_generate_client_.initializePace(0.45, 3*0.5);
       ROS_INFO("START GAIT....");
       }
@@ -313,7 +317,7 @@ public:
         is_start_gait = true;
         parameters->footstepParameters.minimumDuration_ = 0.45;
         parameters->baseTargetParameters.minimumDuration = 0.45;
-        gait_generate_client_.initializePace(0.45,0.45*3);
+        gait_generate_client_.initializePace(0.3,0.3*3);
         gait_generate_client_.updateBaseMotion(desired_linear_velocity_,desired_angular_velocity_);
 
 //        gait_generate_client_.initializePace(0.45, 3*0.5);

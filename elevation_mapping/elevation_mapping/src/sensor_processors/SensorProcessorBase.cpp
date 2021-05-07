@@ -6,7 +6,7 @@
  *   Institute: ETH Zurich, ANYbotics
  */
 
-#include <elevation_mapping/sensor_processors/SensorProcessorBase.hpp>
+#include "elevation_mapping/sensor_processors/SensorProcessorBase.hpp"
 
 // PCL
 #include <pcl/common/io.h>
@@ -24,32 +24,29 @@
 #include <limits>
 #include <vector>
 
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
+
 namespace elevation_mapping {
 
-SensorProcessorBase::SensorProcessorBase(ros::NodeHandle& nodeHandle, tf::TransformListener& transformListener)
+SensorProcessorBase::SensorProcessorBase(ros::NodeHandle& nodeHandle, const GeneralParameters& generalConfig)
     : nodeHandle_(nodeHandle),
-      transformListener_(transformListener),
       ignorePointsUpperThreshold_(std::numeric_limits<double>::infinity()),
       ignorePointsLowerThreshold_(-std::numeric_limits<double>::infinity()),
       applyVoxelGridFilter_(false),
       firstTfAvailable_(false) {
   pcl::console::setVerbosityLevel(pcl::console::L_ERROR);
   transformationSensorToMap_.setIdentity();
-  transformListenerTimeout_.fromSec(1.0);
+  generalParameters_ = generalConfig;
+  ROS_DEBUG(
+      "Sensor processor general parameters are:"
+      "\n\t- robot_base_frame_id: %s"
+      "\n\t- map_frame_id: %s",
+      generalConfig.robotBaseFrameId_.c_str(), generalConfig.mapFrameId_.c_str());
 }
 
 SensorProcessorBase::~SensorProcessorBase() = default;
 
 bool SensorProcessorBase::readParameters() {
-  nodeHandle_.param("sensor_frame_id", sensorFrameId_, std::string("/sensor"));  // TODO(max): Fail if parameters are not found.
-  nodeHandle_.param("robot_base_frame_id", robotBaseFrameId_, std::string("/robot"));
-  nodeHandle_.param("map_frame_id", mapFrameId_, std::string("/map"));
-
-  double minUpdateRate;
-  nodeHandle_.param("min_update_rate", minUpdateRate, 2.0);
-  transformListenerTimeout_.fromSec(1.0 / minUpdateRate);
-  ROS_ASSERT(!transformListenerTimeout_.isZero());
-
   nodeHandle_.param("sensor_processor/ignore_points_above", ignorePointsUpperThreshold_, std::numeric_limits<double>::infinity());
   nodeHandle_.param("sensor_processor/ignore_points_below", ignorePointsLowerThreshold_, -std::numeric_limits<double>::infinity());
 
@@ -58,44 +55,56 @@ bool SensorProcessorBase::readParameters() {
   return true;
 }
 
-bool SensorProcessorBase::process(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pointCloudInput,
-                                  const Eigen::Matrix<double, 6, 6>& robotPoseCovariance,
-                                  const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudMapFrame, Eigen::VectorXf& variances) {
+bool SensorProcessorBase::process(const PointCloudType::ConstPtr pointCloudInput, const Eigen::Matrix<double, 6, 6>& robotPoseCovariance,
+                                  const PointCloudType::Ptr pointCloudMapFrame, Eigen::VectorXf& variances, std::string sensorFrame) {
+  sensorFrameId_ = sensorFrame;
+  ROS_DEBUG("Sensor Processor processing for frame %s", sensorFrameId_.c_str());
+
+  // Update transformation at timestamp of pointcloud
   ros::Time timeStamp;
   timeStamp.fromNSec(1000 * pointCloudInput->header.stamp);
   if (!updateTransformations(timeStamp)) {
     return false;
   }
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudSensorFrame(new pcl::PointCloud<pcl::PointXYZRGB>);
+  // Transform into sensor frame.
+  PointCloudType::Ptr pointCloudSensorFrame(new PointCloudType);
   transformPointCloud(pointCloudInput, pointCloudSensorFrame, sensorFrameId_);
+
+  // Remove Nans (optional voxel grid filter)
   filterPointCloud(pointCloudSensorFrame);
+
+  // Specific filtering per sensor type
   filterPointCloudSensorType(pointCloudSensorFrame);
 
-  if (!transformPointCloud(pointCloudSensorFrame, pointCloudMapFrame, mapFrameId_)) {
+  // Remove outside limits in map frame
+  if (!transformPointCloud(pointCloudSensorFrame, pointCloudMapFrame, generalParameters_.mapFrameId_)) {
     return false;
   }
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pointClouds({pointCloudMapFrame, pointCloudSensorFrame});
+  std::vector<PointCloudType::Ptr> pointClouds({pointCloudMapFrame, pointCloudSensorFrame});
   removePointsOutsideLimits(pointCloudMapFrame, pointClouds);
 
+  // Compute variances
   return computeVariances(pointCloudSensorFrame, robotPoseCovariance, variances);
 }
 
 bool SensorProcessorBase::updateTransformations(const ros::Time& timeStamp) {
   try {
-    transformListener_.waitForTransform(sensorFrameId_, mapFrameId_, timeStamp, ros::Duration(1.0));
+    transformListener_.waitForTransform(sensorFrameId_, generalParameters_.mapFrameId_, timeStamp, ros::Duration(1.0));
 
     tf::StampedTransform transformTf;
-    transformListener_.lookupTransform(mapFrameId_, sensorFrameId_, timeStamp, transformTf);
+    transformListener_.lookupTransform(generalParameters_.mapFrameId_, sensorFrameId_, timeStamp, transformTf);
     poseTFToEigen(transformTf, transformationSensorToMap_);
 
-    transformListener_.lookupTransform(robotBaseFrameId_, sensorFrameId_, timeStamp, transformTf);  // TODO(max): Why wrong direction?
+    transformListener_.lookupTransform(generalParameters_.robotBaseFrameId_, sensorFrameId_, timeStamp,
+                                       transformTf);  // TODO(max): Why wrong direction?
     Eigen::Affine3d transform;
     poseTFToEigen(transformTf, transform);
     rotationBaseToSensor_.setMatrix(transform.rotation().matrix());
     translationBaseToSensorInBaseFrame_.toImplementation() = transform.translation();
 
-    transformListener_.lookupTransform(mapFrameId_, robotBaseFrameId_, timeStamp, transformTf);  // TODO(max): Why wrong direction?
+    transformListener_.lookupTransform(generalParameters_.mapFrameId_, generalParameters_.robotBaseFrameId_, timeStamp,
+                                       transformTf);  // TODO(max): Why wrong direction?
     poseTFToEigen(transformTf, transform);
     rotationMapToBase_.setMatrix(transform.rotation().matrix());
     translationMapToBaseInMapFrame_.toImplementation() = transform.translation();
@@ -114,8 +123,7 @@ bool SensorProcessorBase::updateTransformations(const ros::Time& timeStamp) {
   }
 }
 
-bool SensorProcessorBase::transformPointCloud(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pointCloud,
-                                              pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudTransformed,
+bool SensorProcessorBase::transformPointCloud(PointCloudType::ConstPtr pointCloud, PointCloudType::Ptr pointCloudTransformed,
                                               const std::string& targetFrame) {
   ros::Time timeStamp;
   timeStamp.fromNSec(1000 * pointCloud->header.stamp);
@@ -140,15 +148,14 @@ bool SensorProcessorBase::transformPointCloud(pcl::PointCloud<pcl::PointXYZRGB>:
   return true;
 }
 
-void SensorProcessorBase::removePointsOutsideLimits(pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr reference,
-                                                    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& pointClouds) {
+void SensorProcessorBase::removePointsOutsideLimits(PointCloudType::ConstPtr reference, std::vector<PointCloudType::Ptr>& pointClouds) {
   if (!std::isfinite(ignorePointsLowerThreshold_) && !std::isfinite(ignorePointsUpperThreshold_)) {
     return;
   }
   ROS_DEBUG("Limiting point cloud to the height interval of [%f, %f] relative to the robot base.", ignorePointsLowerThreshold_,
             ignorePointsUpperThreshold_);
 
-  pcl::PassThrough<pcl::PointXYZRGB> passThroughFilter(true);
+  pcl::PassThrough<pcl::PointXYZRGBConfidenceRatio> passThroughFilter(true);
   passThroughFilter.setInputCloud(reference);
   passThroughFilter.setFilterFieldName("z");  // TODO(max): Should this be configurable?
   double relativeLowerThreshold = translationMapToBaseInMapFrame_.z() + ignorePointsLowerThreshold_;
@@ -158,10 +165,10 @@ void SensorProcessorBase::removePointsOutsideLimits(pcl::PointCloud<pcl::PointXY
   passThroughFilter.filter(*insideIndeces);
 
   for (auto& pointCloud : pointClouds) {
-    pcl::ExtractIndices<pcl::PointXYZRGB> extractIndicesFilter;
+    pcl::ExtractIndices<pcl::PointXYZRGBConfidenceRatio> extractIndicesFilter;
     extractIndicesFilter.setInputCloud(pointCloud);
     extractIndicesFilter.setIndices(insideIndeces);
-    pcl::PointCloud<pcl::PointXYZRGB> tempPointCloud;
+    PointCloudType tempPointCloud;
     extractIndicesFilter.filter(tempPointCloud);
     pointCloud->swap(tempPointCloud);
   }
@@ -169,8 +176,8 @@ void SensorProcessorBase::removePointsOutsideLimits(pcl::PointCloud<pcl::PointXY
   ROS_DEBUG("removePointsOutsideLimits() reduced point cloud to %i points.", (int)pointClouds[0]->size());
 }
 
-bool SensorProcessorBase::filterPointCloud(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud) {
-  pcl::PointCloud<pcl::PointXYZRGB> tempPointCloud;
+bool SensorProcessorBase::filterPointCloud(const PointCloudType::Ptr pointCloud) {
+  PointCloudType tempPointCloud;
 
   // Remove nan points.
   std::vector<int> indices;
@@ -182,7 +189,7 @@ bool SensorProcessorBase::filterPointCloud(const pcl::PointCloud<pcl::PointXYZRG
 
   // Reduce points using VoxelGrid filter.
   if (applyVoxelGridFilter_) {
-    pcl::VoxelGrid<pcl::PointXYZRGB> voxelGridFilter;
+    pcl::VoxelGrid<pcl::PointXYZRGBConfidenceRatio> voxelGridFilter;
     voxelGridFilter.setInputCloud(pointCloud);
     double filter_size = sensorParameters_.at("voxelgrid_filter_size");
     voxelGridFilter.setLeafSize(filter_size, filter_size, filter_size);
@@ -193,7 +200,7 @@ bool SensorProcessorBase::filterPointCloud(const pcl::PointCloud<pcl::PointXYZRG
   return true;
 }
 
-bool SensorProcessorBase::filterPointCloudSensorType(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr /*pointCloud*/) {
+bool SensorProcessorBase::filterPointCloudSensorType(const PointCloudType::Ptr /*pointCloud*/) {
   return true;
 }
 

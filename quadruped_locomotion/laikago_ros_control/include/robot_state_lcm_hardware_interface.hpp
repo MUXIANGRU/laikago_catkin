@@ -61,6 +61,7 @@ class RobotStateLcmHardwareInterface : public hardware_interface::RobotHW
 public:
   RobotStateLcmHardwareInterface();
   ~RobotStateLcmHardwareInterface();
+  double moveAllPosition(double targetPos, double current_time,int j);
   bool init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh);
 
   void read(const ros::Time& time, const ros::Duration& period);
@@ -69,7 +70,10 @@ public:
 
   bool Position_initCB(std_srvs::SetBool::Request& request,
                        std_srvs::SetBool::Response& response);
-
+  bool Position_readfileCB(std_srvs::SetBool::Request& request,
+                       std_srvs::SetBool::Response& response);
+  bool Position_readfilestopCB(std_srvs::SetBool::Request& request,
+                       std_srvs::SetBool::Response& response);
   bool Position_stopCB(std_srvs::SetBool::Request& request,
                        std_srvs::SetBool::Response& response);
   bool Controller_switchCB(controller_manager_msgs::SwitchController::Request& request,
@@ -220,11 +224,14 @@ private:
 
   urdf::JointConstSharedPtr joint_urdf;
 
-  ros::ServiceServer laikago_position_init_server_,laikago_position_init_stop_server_,laikago_controller_switch_server_;
-  bool init_flag,test_flag,laikago_position_init_buffer_,last_laikago_position_init_buffer_,laikago_position_init_stop_buffer_;
+  ros::ServiceServer laikago_position_init_server_,laikago_position_init_stop_server_,
+  laikago_controller_switch_server_,laikago_position_readfile_server_,laikago_position_readfile_stop_server_;
+  bool init_flag,test_flag,laikago_position_init_buffer_,last_laikago_position_init_buffer_,
+  laikago_position_init_stop_buffer_,laikago_position_readfile_buffer_,laikago_position_readfile_stop_buffer_;
   std::string controller_name;
   std_msgs::Float64MultiArray footstate_;
   sensor_msgs::JointState joint_command_to_print;
+  double current_pos[12];
 };
 
 

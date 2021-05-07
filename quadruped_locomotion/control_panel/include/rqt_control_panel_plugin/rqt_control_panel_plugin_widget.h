@@ -72,6 +72,10 @@ private slots:
 
   void on_crawlButton_clicked();
 
+  void on_readBotton_clicked();
+
+  void on_stopreadBotton_clicked();
+
 private:
   Ui::rqt_control_panel_plugin_widget *ui;
   ros::NodeHandle nodehandle_;
@@ -85,6 +89,8 @@ private:
   ros::ServiceClient paceSwitchClient_;
   ros::ServiceClient crawlSwitchClient_;
   ros::ServiceClient laikago_position_init;
+  ros::ServiceClient laikago_position_readfile;
+  ros::ServiceClient laikago_position_readfile_stop;
   ros::ServiceClient laikago_position_init_stop;
 
   ros::Publisher eStopPublisher_;

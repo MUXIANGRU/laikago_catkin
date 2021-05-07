@@ -43,7 +43,7 @@ class InputSourceManager {
    * @param sourceConfigurationName The name of the input source configuration.
    * @return True if configuring was successful.
    */
-  bool configure( XmlRpc::XmlRpcValue& parameters, const std::string& sourceConfigurationName);
+  bool configure(XmlRpc::XmlRpcValue& parameters, const std::string& sourceConfigurationName);
 
   /**
    * @brief Registers the corresponding callback in the elevationMap.

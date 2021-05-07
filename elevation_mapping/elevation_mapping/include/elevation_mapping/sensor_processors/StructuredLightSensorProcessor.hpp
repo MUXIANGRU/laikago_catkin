@@ -9,6 +9,7 @@
 #pragma once
 
 #include <elevation_mapping/sensor_processors/SensorProcessorBase.hpp>
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
 
 namespace elevation_mapping {
 
@@ -20,9 +21,8 @@ class StructuredLightSensorProcessor : public SensorProcessorBase {
   /*!
    * Constructor.
    * @param nodeHandle the ROS node handle.
-   * @param transformListener the ROS transform listener.
    */
-  StructuredLightSensorProcessor(ros::NodeHandle& nodeHandle, tf::TransformListener& transformListener);
+  StructuredLightSensorProcessor(ros::NodeHandle& nodeHandle, const SensorProcessorBase::GeneralParameters& generalParameters);
 
   /*!
    * Destructor.
@@ -44,14 +44,14 @@ class StructuredLightSensorProcessor : public SensorProcessorBase {
    * @param[out] variances the elevation map height variances.
    * @return true if successful.
    */
-  bool computeVariances(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pointCloud,
-                        const Eigen::Matrix<double, 6, 6>& robotPoseCovariance, Eigen::VectorXf& variances) override;
+  bool computeVariances(const PointCloudType::ConstPtr pointCloud, const Eigen::Matrix<double, 6, 6>& robotPoseCovariance,
+                        Eigen::VectorXf& variances) override;
 
   /*!
    * Cuts off points that are not within the cutoff interval
    * @param pointCloud the point cloud to filter.
    * @return true if successful.
    */
-  bool filterPointCloudSensorType(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud) override;
+  bool filterPointCloudSensorType(const PointCloudType::Ptr pointCloud) override;
 };
 } /* namespace elevation_mapping */

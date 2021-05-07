@@ -8,25 +8,13 @@
 
 #pragma once
 
-// Elevation Mapping
-#include "elevation_mapping/ElevationMap.hpp"
-#include "elevation_mapping/RobotMotionMapUpdater.hpp"
-#include "elevation_mapping/WeightedEmpiricalCumulativeDistributionFunction.hpp"
-#include "elevation_mapping/input_sources/InputSourceManager.hpp"
-#include "elevation_mapping/sensor_processors/SensorProcessorBase.hpp"
-
 // Grid Map
 #include <grid_map_msgs/GetGridMap.h>
 #include <grid_map_msgs/ProcessFile.h>
 #include <grid_map_msgs/SetGridMap.h>
-
-// Eigen
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
-// PCL
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
+#include <grid_map_msgs/GridMap.h>
+#include <grid_map_ros/GridMapRosConverter.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
 
 // ROS
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -36,9 +24,22 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_listener.h>
+#include <std_msgs/Float64.h>
+
+// Eigen
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 // Boost
 #include <boost/thread.hpp>
+
+// Elevation Mapping
+#include "elevation_mapping/ElevationMap.hpp"
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
+#include "elevation_mapping/RobotMotionMapUpdater.hpp"
+#include "elevation_mapping/WeightedEmpiricalCumulativeDistributionFunction.hpp"
+#include "elevation_mapping/input_sources/InputSourceManager.hpp"
+#include "elevation_mapping/sensor_processors/SensorProcessorBase.hpp"
 
 namespace elevation_mapping {
 
@@ -67,8 +68,10 @@ class ElevationMapping {
    *
    * @param pointCloudMsg    The point cloud to be fused with the existing data.
    * @param publishPointCloud If true, publishes the pointcloud after updating the map.
+   * @param sensorProcessor_ The sensorProcessor to use in this callback.
    */
-  void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pointCloudMsg, bool publishPointCloud);
+  void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pointCloudMsg, bool publishPointCloud,
+                          const SensorProcessorBase::Ptr& sensorProcessor_);
 
   /*!
    * Callback function for the update timer. Forces an update of the map from
@@ -180,6 +183,8 @@ class ElevationMapping {
    */
   bool loadMap(grid_map_msgs::ProcessFile::Request& request, grid_map_msgs::ProcessFile::Response& response);
 
+  void subMap(const grid_map_msgs::GridMap &grid_map);
+
  private:
   /*!
    * Reads and verifies the ROS parameters.
@@ -244,6 +249,7 @@ class ElevationMapping {
   //! ROS nodehandle.
   ros::NodeHandle nodeHandle_;
 
+
  protected:
   //! Input sources.
   InputSourceManager inputSources_;
@@ -261,6 +267,9 @@ class ElevationMapping {
   ros::ServiceServer maskedReplaceService_;
   ros::ServiceServer saveMapService_;
   ros::ServiceServer loadMapService_;
+
+  ros::Subscriber map_sub_;
+  ros::Publisher var_pub_;
 
   //! Callback thread for the fusion services.
   boost::thread fusionServiceThread_;
@@ -291,7 +300,7 @@ class ElevationMapping {
   //! Elevation map.
   ElevationMap map_;
 
-  //! Sensor processors.
+  //! Sensor processors. Deprecated use the one from input sources instead.
   SensorProcessorBase::Ptr sensorProcessor_;
 
   //! Robot motion elevation map updater.
@@ -363,6 +372,10 @@ class ElevationMapping {
 
   //! Additional offset of the height value
   double initSubmapHeightOffset_;
+
+  grid_map::GridMap map_guassian;
+  geometry_msgs::Vector3 my_cov;
+
 };
 
 }  // namespace elevation_mapping

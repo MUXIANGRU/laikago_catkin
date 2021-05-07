@@ -21,7 +21,7 @@ balance_controller:
       kd: 10
       kff: 0.2
     yaw:
-      kp: 500
+      kp: 600
       kd: 10
       kff: 1
     gravity_compensation_percentage: 1.005
@@ -47,10 +47,10 @@ balance_controller:
 single_leg_controller:
   x_direction:
     kp: 150
-    kd: 4
+    kd: 10
   y_direction:
     kp: 150
-    kd: 4
+    kd: 10
   z_direction:
     kp: 150
-    kd: 4
+    kd: 10

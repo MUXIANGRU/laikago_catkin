@@ -29,8 +29,6 @@ bool RobotMotionMapUpdater::readParameters() {
 
 bool RobotMotionMapUpdater::update(ElevationMap& map, const Pose& robotPose, const PoseCovariance& robotPoseCovariance,
                                    const ros::Time& time) {
-
-    std::cout<<" RobotMotionMapUpdater::update !!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
   const PoseCovariance robotPoseCovarianceScaled = covarianceScale_ * robotPoseCovariance;
 
   // Check if update necessary.
@@ -75,6 +73,7 @@ bool RobotMotionMapUpdater::update(ElevationMap& map, const Pose& robotPose, con
       map.getPose().getRotation().inverseRotate(map.getPose().getPosition() - previousRobotPose_.getPosition());
 
   auto& heightLayer = map.getRawGridMap()["elevation"];
+  auto& footheightLayer = map.getRawGridMap()["pre_footmap"];
 
   // For each cell in map. // TODO(max): Change to new iterator.
   for (unsigned int i = 0; i < static_cast<unsigned int>(size(0)); ++i) {
@@ -82,6 +81,7 @@ bool RobotMotionMapUpdater::update(ElevationMap& map, const Pose& robotPose, con
       kindr::Position3D cellPosition;  // M_r_MP
 
       const auto height = heightLayer(i, j);
+      const auto footheight = footheightLayer(i, j);
       if (std::isfinite(height)) {
         grid_map::Position position;
         map.getRawGridMap().getPosition({i, j}, position);
@@ -101,12 +101,41 @@ bool RobotMotionMapUpdater::update(ElevationMap& map, const Pose& robotPose, con
         horizontalVarianceUpdateY(i, j) = translationVarianceUpdate.y() + rotationVarianceUpdate(1, 1);
         horizontalVarianceUpdateXY(i, j) = rotationVarianceUpdate(0, 1);
       } else {
-        // Cell invalid. // TODO(max): Change to new functions
-        varianceUpdate(i, j) = std::numeric_limits<float>::infinity();
-        horizontalVarianceUpdateX(i, j) = std::numeric_limits<float>::infinity();
-        horizontalVarianceUpdateY(i, j) = std::numeric_limits<float>::infinity();
-        horizontalVarianceUpdateXY(i, j) = std::numeric_limits<float>::infinity();
+          if(std::isfinite(footheight)){
+
+//              std::cout<<"program coming here!!!!!!!"<<std::endl;
+              grid_map::Position position;
+              map.getRawGridMap().getPosition({i, j}, position);
+              cellPosition = {position.x(), position.y(), footheight};
+
+              // Rotation Jacobian J_R (25)
+              const Eigen::Matrix3d rotationJacobian =
+                  -kindr::getSkewMatrixFromVector((positionRobotToMap + cellPosition).vector()) * mapToPreviousRobotRotationInverted.matrix();
+
+              // Rotation variance update.
+              const Eigen::Matrix2f rotationVarianceUpdate =
+                  (rotationJacobian * rotationCovariance * rotationJacobian.transpose()).topLeftCorner<2, 2>().cast<float>();
+
+              // Variance update.
+              varianceUpdate(i, j) = translationVarianceUpdate.z();
+              horizontalVarianceUpdateX(i, j) = translationVarianceUpdate.x() + rotationVarianceUpdate(0, 0);
+              horizontalVarianceUpdateY(i, j) = translationVarianceUpdate.y() + rotationVarianceUpdate(1, 1);
+              horizontalVarianceUpdateXY(i, j) = rotationVarianceUpdate(0, 1);
+          }
+          else{
+              // Cell invalid. // TODO(max): Change to new functions
+              varianceUpdate(i, j) = std::numeric_limits<float>::infinity();
+              horizontalVarianceUpdateX(i, j) = std::numeric_limits<float>::infinity();
+              horizontalVarianceUpdateY(i, j) = std::numeric_limits<float>::infinity();
+              horizontalVarianceUpdateXY(i, j) = std::numeric_limits<float>::infinity();
+          }
+
       }
+
+//      if(horizontalVarianceUpdateX(i, j) != std::numeric_limits<float>::infinity()){
+//              std::cout<<"horizontalVarianceUpdateX(i, j)   "<<horizontalVarianceUpdateX(i, j)<<std::endl;
+//      }
+
     }
   }
 

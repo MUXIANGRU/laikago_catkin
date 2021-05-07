@@ -153,7 +153,14 @@ void FakePose::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& mod
       base_twist.angular.y *= real_time_factor;
       base_twist.angular.z *= real_time_factor;
 
+    //fakePoseMsg_.header.stamp = gazebo_time;   //MXR::NOTE:will cause elevation_map error
     fakePoseMsg_.pose.pose = base_pose;
+    fakePoseMsg_.pose.covariance[0]=0.001;
+    fakePoseMsg_.pose.covariance[7]=0.001;
+    fakePoseMsg_.pose.covariance[14]=0.001;
+    fakePoseMsg_.pose.covariance[21]=0.001;
+    fakePoseMsg_.pose.covariance[28]=0.001;
+    fakePoseMsg_.pose.covariance[35]=0.001;
     robot_state_.base_pose.pose = fakePoseMsg_.pose;
     robot_state_.base_pose.child_frame_id = "/base";
     robot_state_.base_pose.twist.twist = base_twist;

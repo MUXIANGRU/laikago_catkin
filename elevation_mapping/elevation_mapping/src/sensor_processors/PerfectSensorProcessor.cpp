@@ -6,7 +6,7 @@
  *   Institute: ETH Zurich, ANYbotics
  */
 
-#include <elevation_mapping/sensor_processors/PerfectSensorProcessor.hpp>
+#include "elevation_mapping/sensor_processors/PerfectSensorProcessor.hpp"
 
 // PCL
 #include <pcl/filters/filter.h>
@@ -16,14 +16,16 @@
 #include <string>
 #include <vector>
 
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
+
 namespace elevation_mapping {
 
 /*!
  * Noiseless, perfect sensor.
  */
 
-PerfectSensorProcessor::PerfectSensorProcessor(ros::NodeHandle& nodeHandle, tf::TransformListener& transformListener)
-    : SensorProcessorBase(nodeHandle, transformListener) {}
+PerfectSensorProcessor::PerfectSensorProcessor(ros::NodeHandle& nodeHandle, const SensorProcessorBase::GeneralParameters& generalParameters)
+    : SensorProcessorBase(nodeHandle, generalParameters) {}
 
 PerfectSensorProcessor::~PerfectSensorProcessor() = default;
 
@@ -31,7 +33,7 @@ bool PerfectSensorProcessor::readParameters() {
   return SensorProcessorBase::readParameters();
 }
 
-bool PerfectSensorProcessor::computeVariances(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pointCloud,
+bool PerfectSensorProcessor::computeVariances(const PointCloudType::ConstPtr pointCloud,
                                               const Eigen::Matrix<double, 6, 6>& robotPoseCovariance, Eigen::VectorXf& variances) {
   variances.resize(pointCloud->size());
 

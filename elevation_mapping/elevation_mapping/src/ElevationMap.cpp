@@ -9,11 +9,14 @@
 #include <cmath>
 
 #include <grid_map_msgs/GridMap.h>
+#include <grid_map_ros/GridMapRosConverter.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
 #include <ros/ros.h>
 #include <Eigen/Dense>
 
 #include "elevation_mapping/ElevationMap.hpp"
 #include "elevation_mapping/ElevationMapFunctors.hpp"
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
 #include "elevation_mapping/WeightedEmpiricalCumulativeDistributionFunction.hpp"
 
 namespace elevation_mapping {
@@ -21,10 +24,11 @@ namespace elevation_mapping {
 ElevationMap::ElevationMap(ros::NodeHandle nodeHandle)
     : nodeHandle_(nodeHandle),
       rawMap_({"elevation", "variance", "horizontal_variance_x", "horizontal_variance_y", "horizontal_variance_xy", "color", "time",
-               "lowest_scan_point", "sensor_x_at_lowest_scan", "sensor_y_at_lowest_scan", "sensor_z_at_lowest_scan"}),   // Raw elevation map as grid map.(the shape of GridMap)
-      fusedMap_({"elevation", "upper_bound", "lower_bound", "color"}),  //shape of fusedMap
-      postprocessorPool_(nodeHandle.param("postprocessor_num_threads", 1), nodeHandle_),  //Thread Pool to handle raw map postprocessing filter pipelines.
-      hasUnderlyingMap_(false),  //True if underlying map has been set, false otherwise.
+               "lowest_scan_point", "sensor_x_at_lowest_scan", "sensor_y_at_lowest_scan", "sensor_z_at_lowest_scan"
+              ,"pre_footmap","aft_footmap","footlayer_covariance","vegetablelayer_covariance"}),
+      fusedMap_({"elevation", "upper_bound", "lower_bound", "color"}),
+      postprocessorPool_(nodeHandle.param("postprocessor_num_threads", 1), nodeHandle_),
+      hasUnderlyingMap_(false),
       minVariance_(0.000009),
       maxVariance_(0.0009),
       mahalanobisDistanceThreshold_(2.5),
@@ -51,7 +55,6 @@ ElevationMap::ElevationMap(ros::NodeHandle nodeHandle)
 
 ElevationMap::~ElevationMap() = default;
 
-//get elevation_map size(concerned with resolution and size)
 void ElevationMap::setGeometry(const grid_map::Length& length, const double& resolution, const grid_map::Position& position) {
   boost::recursive_mutex::scoped_lock scopedLockForRawData(rawMapMutex_);
   boost::recursive_mutex::scoped_lock scopedLockForFusedData(fusedMapMutex_);
@@ -59,14 +62,85 @@ void ElevationMap::setGeometry(const grid_map::Length& length, const double& res
   fusedMap_.setGeometry(length, resolution, position);
   ROS_INFO_STREAM("Elevation map grid resized to " << rawMap_.getSize()(0) << " rows and " << rawMap_.getSize()(1) << " columns.");
 }
-//Add new measurements to the elevation map
-bool ElevationMap::add(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud, Eigen::VectorXf& pointCloudVariances,
-                       const ros::Time& timestamp, const Eigen::Affine3d& transformationSensorToMap) {
+void ElevationMap::fromTopic(const grid_map::GridMap& grid_map){
+    //std::cout<<"size is"<<grid_map.getSize()<<std::endl;
+   // std::cout<<grid_map.
+//    Eigen::Vector2d position(0.0,0.0);
+//    grid_map::Index index;
+//    if (rawMap_.getIndex(position, index)) {
+//        std::cout<<"index:    "<<index<<std::endl; // Skip this point if it does not lie within the elevation map.
+//    }
+    std::vector<Eigen::Ref<const grid_map::Matrix>> basicLayers_;
+    for (const std::string& layer : rawMap_.getBasicLayers()) {
+      basicLayers_.push_back(rawMap_.get(layer));
+    }
+
+    for (grid_map::GridMapIterator it(grid_map); !it.isPastEnd(); ++it) {
+      Eigen::Vector2d position;
+      grid_map::Index index;
+      grid_map::Index gridmap_index;
+      grid_map.getPosition(*it, position);
+      grid_map.getIndex(position,gridmap_index);
+      if (!rawMap_.getIndex(position, index)) {
+        continue;  // Skip this point if it does not lie within the elevation map.
+      }
+      bool isValid = std::all_of(basicLayers_.begin(), basicLayers_.end(),
+                                 [&](Eigen::Ref<const grid_map::Matrix> layer) { return std::isfinite(layer(index(0), index(1))); });
+//      std::cout<<"index is  "<<index<<std::endl;
+//      std::cout<<"gridmap_index is  "<<gridmap_index<<std::endl;
+
+      //isvalid 针对的是basiclayer!!!!
+      if(grid_map.isValid(gridmap_index)){
+          //std::cout<<"valid index!!!!!!!!!!!!!!!!"<<std::endl;
+//          std::cout<<grid_map.at("vegetable_layer_variance",gridmap_index)<<std::endl; //MXR::NOTE: lies in (0,0.30)
+//          std::cout<<grid_map.at("foot_layer_variance",gridmap_index)<<std::endl;
+          rawMap_.at("pre_footmap",index) = grid_map.at("final_fused",gridmap_index);
+          rawMap_.at("footlayer_covariance",index) = grid_map.at("foot_layer_variance",gridmap_index);
+          rawMap_.at("vegetablelayer_covariance",index) = grid_map.at("final_cov",gridmap_index);
+          if(!rawMap_.isValid(index,"aft_footmap")){
+                rawMap_.at("aft_footmap",index) = grid_map.at("final_fused",gridmap_index);
+          }else{
+              //MXR::NOTE: GET average variance
+              variance = (rawMap_.at("vegetablelayer_covariance",index)+grid_map.at("final_cov",gridmap_index))/2;
+
+//              std::cout<<"variance  "<<variance<<std::endl;
+//              std::cout<<"variance1   "<<variance1<<std::endl;
+              //std::cout<<"mxr_covariance  "<<mxr_covariance<<std::endl;
+              rawMap_.at("aft_footmap",index) = (rawMap_.at("aft_footmap",index)*grid_map.at("final_cov",gridmap_index)
+                      + grid_map.at("final_fused",gridmap_index)*variance1)/(2*variance);
+
+              variance1 = rawMap_.at("vegetablelayer_covariance",index)*grid_map.at("final_cov",gridmap_index)/
+                      (rawMap_.at("vegetablelayer_covariance",index)+grid_map.at("final_cov",gridmap_index));
+          }
+
+
+      }
+//      if(grid_map.isValid(gridmap_index)&&(isValid)){
+//        continue;
+//      }
+
+    }
+}
+bool ElevationMap::add(const PointCloudType::Ptr pointCloud, Eigen::VectorXf& pointCloudVariances, const ros::Time& timestamp,
+                       const Eigen::Affine3d& transformationSensorToMap,const grid_map::GridMap& pre_footmap) {
   if (static_cast<unsigned int>(pointCloud->size()) != static_cast<unsigned int>(pointCloudVariances.size())) {
     ROS_ERROR("ElevationMap::add: Size of point cloud (%i) and variances (%i) do not agree.", (int)pointCloud->size(),
               (int)pointCloudVariances.size());
     return false;
   }
+
+  //std::cout<<"============================"<<std::endl;
+  double sum = 0;
+  for(int i=0;i<pointCloudVariances.rows();i++){
+      for(int j=0;j<pointCloudVariances.cols();j++){
+            //std::cout<<pointCloudVariances(i,j);
+            sum+=pointCloudVariances(i,j);
+            mxr_covariance = sum;
+      }
+      //std::cout<<std::endl;
+  }
+  //std::cout<<pointCloudVariances<<std::endl;
+  //std::cout<<"============================"<<std::endl;
 
   // Initialization for time calculation.
   const ros::WallTime methodStartTime(ros::WallTime::now());
@@ -80,6 +154,9 @@ bool ElevationMap::add(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud, 
 
   // Store references for efficient interation.
   auto& elevationLayer = rawMap_["elevation"];
+  auto& prefootLayer = rawMap_["pre_footmap"];
+  auto& aftfootLayer = rawMap_["aft_footmap"];
+  auto& prevegvarLayer = rawMap_["vegetablelayer_covariance"];
   auto& varianceLayer = rawMap_["variance"];
   auto& horizontalVarianceXLayer = rawMap_["horizontal_variance_x"];
   auto& horizontalVarianceYLayer = rawMap_["horizontal_variance_y"];
@@ -158,6 +235,9 @@ bool ElevationMap::add(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud, 
       sensorZatLowestScan = sensorTranslation.z();
     }
 
+
+//        std::cout<<"variance    "<<variance<<std::endl;            //1.00167e-09
+//        std::cout<<"pointVariance    "<<pointVariance<<std::endl;  //8.68825e-07
     // Fuse measurement with elevation map data.
     elevation =
         (variance * point.z + pointVariance * elevation) / (variance + pointVariance);  // NOLINT(cppcoreguidelines-pro-type-union-access)
@@ -166,12 +246,71 @@ bool ElevationMap::add(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud, 
     grid_map::colorVectorToValue(point.getRGBVector3i(), color);
     time = scanTimeSinceInitialization;
 
+
     // Horizontal variances are reset.
     horizontalVarianceX = minHorizontalVariance_;
     horizontalVarianceY = minHorizontalVariance_;
     horizontalVarianceXY = 0.0;
   }
 
+  for(grid_map::GridMapIterator it(rawMap_); !it.isPastEnd(); ++it) {
+      Eigen::Vector2d position;
+      grid_map::Index index;
+      grid_map::Index index_;
+      rawMap_.getPosition(*it, position);
+      rawMap_.getIndex(position,index);
+      pre_footmap.getIndex(position,index_);
+//      std::cout<<index_<<std::endl;
+
+
+      auto& prefootheight = prefootLayer(index(0), index(1));
+      auto& aftfootheight = aftfootLayer(index(0), index(1));
+      auto& prevegheight_var = prevegvarLayer(index(0), index(1));
+      auto& variance = varianceLayer(index(0), index(1));
+      auto& horizontalVarianceX = horizontalVarianceXLayer(index(0), index(1));
+      auto& horizontalVarianceY = horizontalVarianceYLayer(index(0), index(1));
+      auto& horizontalVarianceXY = horizontalVarianceXYLayer(index(0), index(1));
+      auto& color = colorLayer(index(0), index(1));
+      auto& time = timeLayer(index(0), index(1));
+      auto& lowestScanPoint = lowestScanPointLayer(index(0), index(1));
+      auto& sensorXatLowestScan = sensorXatLowestScanLayer(index(0), index(1));
+      auto& sensorYatLowestScan = sensorYatLowestScanLayer(index(0), index(1));
+      auto& sensorZatLowestScan = sensorZatLowestScanLayer(index(0), index(1));
+
+//      bool isValid = std::all_of(basicLayers_.begin(), basicLayers_.end(),
+//                                 [&](Eigen::Ref<const grid_map::Matrix> layer) { return std::isfinite(layer(index(0), index(1))); });
+
+//      if (!isValid) {
+//        // No prior information in elevation map, use measurement. // NOLINT(cppcoreguidelines-pro-type-union-access)
+//        variance = 0.0;
+//        horizontalVarianceX = 0.0;
+//        horizontalVarianceY = 0.0;
+//        horizontalVarianceXY = 0.0;
+//        continue;
+//      }
+
+      //if(pre_footmap.isValid(index_)){
+//          std::cout<<"entry there!!!!!!!!!!!!!!!"<<std::endl;
+/*      if(pre_footmap.isValid(index_)){
+          if(!rawMap_.isValid(index,"aft_footmap")){
+             aftfootheight = prefootheight;
+          }*//*else{
+                        aftfootheight = (prevegheight_var * pre_footmap.at("final_fused",index_) +  pre_footmap.at("vegetable_layer_variance",index_) * prefootheight) /
+                                (prevegheight_var +  pre_footmap.at("vegetable_layer_variance",index_));
+          }*/
+          //std::cout<<"entry there!!!!!!!!!!!!!!!"<<std::endl;
+//          aftfootheight = (prevegheight_var * pre_footmap.at("final_fused",index_) +  pre_footmap.at("vegetable_layer_variance",index_) * prefootheight) /
+//                  (prevegheight_var +  pre_footmap.at("vegetable_layer_variance",index_));
+      }
+
+      //}
+//      else{
+//          aftfootheight = 0.0;
+//      }
+
+//      variance = (pointVariance * variance) / (pointVariance + variance);
+
+//  }
   clean();
   rawMap_.setTimestamp(timestamp.toNSec());  // Point cloud stores time in microseconds.
 
@@ -179,7 +318,7 @@ bool ElevationMap::add(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud, 
   ROS_DEBUG("Raw map has been updated with a new point cloud in %f s.", duration.toSec());
   return true;
 }
-//Update the elevation map with variance update data.
+
 bool ElevationMap::update(const grid_map::Matrix& varianceUpdate, const grid_map::Matrix& horizontalVarianceUpdateX,
                           const grid_map::Matrix& horizontalVarianceUpdateY, const grid_map::Matrix& horizontalVarianceUpdateXY,
                           const ros::Time& time) {
@@ -204,13 +343,13 @@ bool ElevationMap::update(const grid_map::Matrix& varianceUpdate, const grid_map
 
   return true;
 }
-// Triggers the fusion of the entire elevation map.
+
 bool ElevationMap::fuseAll() {
   ROS_DEBUG("Requested to fuse entire elevation map.");
   boost::recursive_mutex::scoped_lock scopedLock(fusedMapMutex_);
   return fuse(grid_map::Index(0, 0), fusedMap_.getSize());
 }
-//Fuses the elevation map for a certain rectangular area.
+
 bool ElevationMap::fuseArea(const Eigen::Vector2d& position, const Eigen::Array2d& length) {
   ROS_DEBUG("Requested to fuse an area of the elevation map with center at (%f, %f) and side lengths (%f, %f)", position[0], position[1],
             length[0], length[1]);
@@ -410,9 +549,7 @@ bool ElevationMap::clear() {
   }
   return true;
 }
-// Removes parts of the map based on visibility criterion with ray tracing.
-// at a low frequency
-// under some conditions have no remarkable results
+
 void ElevationMap::visibilityCleanup(const ros::Time& updatedTime) {
   // Get current time to compute calculation time.
   const ros::WallTime methodStartTime(ros::WallTime::now());
@@ -504,19 +641,18 @@ void ElevationMap::visibilityCleanup(const ros::Time& updatedTime) {
   publishVisibilityCleanupMap();
 
   ros::WallDuration duration(ros::WallTime::now() - methodStartTime);
-  ROS_INFO("Visibility cleanup has been performed in %f s (%d points).", duration.toSec(), (int)cellPositionsToRemove.size());
+  ROS_DEBUG("Visibility cleanup has been performed in %f s (%d points).", duration.toSec(), (int)cellPositionsToRemove.size());
   if (duration.toSec() > visibilityCleanupDuration_) {
     ROS_WARN("Visibility cleanup duration is too high (current rate is %f).", 1.0 / duration.toSec());
   }
 }
-//* Move the grid map w.r.t. to the grid map frame.
-// concerned with the robot motion
+
 void ElevationMap::move(const Eigen::Vector2d& position) {
   boost::recursive_mutex::scoped_lock scopedLockForRawData(rawMapMutex_);
   std::vector<grid_map::BufferRegion> newRegions;
 
   if (rawMap_.move(position, newRegions)) {
-    ROS_INFO("Elevation map has been moved to position (%f, %f).", rawMap_.getPosition().x(), rawMap_.getPosition().y());
+    ROS_DEBUG("Elevation map has been moved to position (%f, %f).", rawMap_.getPosition().x(), rawMap_.getPosition().y());
     if (hasUnderlyingMap_) {
       rawMap_.addDataFrom(underlyingMap_, false, false, true);
     }
@@ -665,7 +801,7 @@ bool ElevationMap::hasRawMapSubscribers() const {
 bool ElevationMap::hasFusedMapSubscribers() const {
   return elevationMapFusedPublisher_.getNumSubscribers() >= 1;
 }
-
+//MXR::NOTE: seem no used
 void ElevationMap::underlyingMapCallback(const grid_map_msgs::GridMap& underlyingMap) {
   ROS_INFO("Updating underlying map.");
   grid_map::GridMapRosConverter::fromMessage(underlyingMap, underlyingMap_);

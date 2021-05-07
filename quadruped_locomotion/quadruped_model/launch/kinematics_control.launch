@@ -1,0 +1,9 @@
+<launch>
+  <param name= "/loopRate" type= "double" value= "50"/>
+
+  <param name= "/filePath" type= "string" value= "/home/mxr/catkin_laikago/calculated.txt"/>
+
+  <node name="kinematics_control_node" pkg="quadruped_model" type="kinematics_control_node" output="screen">
+  </node>
+
+</launch>

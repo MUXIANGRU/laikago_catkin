@@ -6,6 +6,8 @@ Use of this source code is governed by the MPL-2.0 license, see LICENSE.
 #include "laikago_controller/joint_controller.h"
 #include "laikago_controller/laikago_control_tool.h"
 #include <pluginlib/class_list_macros.h>
+#include <sensor_msgs/JointState.h>
+
 
 namespace laikago_controller {
 
@@ -19,6 +21,7 @@ namespace laikago_controller {
 
     void LaikagoJointController::setCommandCB(const laikago_msgs::MotorCmdConstPtr& msg)
     {
+      //  ROS_ERROR("noting!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         lastCmd.mode = msg->mode;
         lastCmd.position = msg->position;
         lastCmd.positionStiffness = msg->positionStiffness;
@@ -30,10 +33,39 @@ namespace laikago_controller {
         //  * there is only one single rt thread
         command.writeFromNonRT(lastCmd);
     }
+    void LaikagoJointController::jsCallback(const sensor_msgs::JointState::ConstPtr &msg){
+        js_msg.name = msg->name;
+        js_msg.effort = msg->effort;
+        js_msg.header = msg->header;
+        js_msg.position = msg->position;
+        js_msg.velocity = msg->velocity;
+    }
 
     // Controller initialization in non-realtime
     bool LaikagoJointController::init(hardware_interface::EffortJointInterface *robot, ros::NodeHandle &n)
+//    bool LaikagoJointController::init(hardware_interface::RobotStateInterface* hardware,
+//                                      ros::NodeHandle& n)
     {
+//        robot_state_data_.name = "base_controller";
+//        robot_state_data_.position = position;
+//        robot_state_data_.orientation = orinetation;
+//        robot_state_data_.linear_velocity = linear_vel;
+//        robot_state_data_.angular_velocity = angular_vel;
+//        robot_state_data_.joint_position_read = pos_read;
+//        robot_state_data_.joint_position_write = pos_write;
+//        robot_state_data_.joint_velocity_read = vel_read;
+//        robot_state_data_.joint_velocity_write = vel_write;
+//        robot_state_data_.joint_effort_read = eff_read;
+//        robot_state_data_.joint_effort_write = eff_write;
+//        robot_state_data_.foot_contact = foot_contact;
+//        robot_state_data_.contact_pressure = contact_pressure;
+//        robot_state_data_.motor_status_word = motor_status_word;
+//        robot_state_data_.mode_of_joint = mode_of_joint;
+//        //! WSHY: registerhandle pass the data point to the hardwareResourseManager and then
+//        //! the read() method update data which the pointer points to or write() the
+//        //! updated commmand
+//        robot_state_interface_.registerHandle(hardware_interface::RobotStateHandle(robot_state_data_));
+        //robot_state_handle = hardware->getHandle("base_controller");
         name_space = n.getNamespace();
         if (!n.getParam("joint", joint_name)){
             ROS_ERROR("No joint given in namespace: '%s')", n.getNamespace().c_str());
@@ -52,6 +84,7 @@ namespace laikago_controller {
         joint = robot->getHandle(joint_name);
         // Start command subscriber
         sub_cmd = n.subscribe("command", 20, &LaikagoJointController::setCommandCB, this);
+        js_sub_ = n.subscribe<sensor_msgs::JointState>("/joint_states", 1, &LaikagoJointController::jsCallback, this);
  
         // Start realtime state publisher
         controller_state_publisher_.reset(
@@ -79,7 +112,45 @@ namespace laikago_controller {
     void LaikagoJointController::starting(const ros::Time& time)
     {
         ROS_INFO("STARTING!!!!!!");
-        double init_pos = joint.getPosition();
+        //double init_pos = joint.getPosition();//how to get joint_state
+        double init_pos;
+        if(joint.getName()=="LF_HAA"){
+            init_pos = js_msg.position[0];
+        }
+        else if(joint.getName()=="LF_HFE"){
+            init_pos = js_msg.position[1];
+        }
+        else if(joint.getName()=="LF_KFE"){
+            init_pos = js_msg.position[2];
+        }
+        else if(joint.getName()=="RF_HAA"){
+            init_pos = js_msg.position[6];
+        }
+        else if(joint.getName()=="RF_HFE"){
+            init_pos = js_msg.position[7];
+        }
+        else if(joint.getName()=="RF_KFE"){
+            init_pos = js_msg.position[8];
+        }
+        else if(joint.getName()=="LH_HAA"){
+            init_pos = js_msg.position[3];
+        }
+        else if(joint.getName()=="LH_HFE"){
+            init_pos = js_msg.position[4];
+        }
+        else if(joint.getName()=="LH_KFE"){
+            init_pos = js_msg.position[5];
+        }
+        else if(joint.getName()=="RH_HAA"){
+            init_pos = js_msg.position[9];
+        }
+        else if(joint.getName()=="RH_HFE"){
+            init_pos = js_msg.position[10];
+        }
+        else if(joint.getName()=="RH_KFE"){
+            init_pos = js_msg.position[11];
+        }
+        std::cout<<"init_pos   "<<init_pos<<std::endl;
         lastCmd.position = init_pos;
         lastState.position = init_pos;
         lastCmd.velocity = 0;
@@ -112,18 +183,71 @@ namespace laikago_controller {
         }
         servoCmd.torque = lastCmd.torque;
 //        std::cout<<"))))))))))))))"<<std::endl;
-//        std::cout<<servoCmd.pos<<"  "<<servoCmd.vel<<"  "<<servoCmd.torque<<std::endl;
+//        std::cout<<servoCmd.posStiffness<<"  "<<servoCmd.velStiffness<<std::endl;
 
-        currentPos = joint.getPosition();
+
+        if(joint.getName()=="LF_HAA"){
+            currentPos = js_msg.position[0];
+        }
+        else if(joint.getName()=="LF_HFE"){
+            currentPos = js_msg.position[1];
+        }
+        else if(joint.getName()=="LF_KFE"){
+            currentPos = js_msg.position[2];
+        }
+        else if(joint.getName()=="RF_HAA"){
+            currentPos = js_msg.position[6];
+        }
+        else if(joint.getName()=="RF_HFE"){
+            currentPos = js_msg.position[7];
+        }
+        else if(joint.getName()=="RF_KFE"){
+            currentPos = js_msg.position[8];
+        }
+        else if(joint.getName()=="LH_HAA"){
+            currentPos = js_msg.position[3];
+        }
+        else if(joint.getName()=="LH_HFE"){
+            currentPos = js_msg.position[4];
+        }
+        else if(joint.getName()=="LH_KFE"){
+            currentPos = js_msg.position[5];
+        }
+        else if(joint.getName()=="RH_HAA"){
+            currentPos = js_msg.position[9];
+        }
+        else if(joint.getName()=="RH_HFE"){
+            currentPos = js_msg.position[10];
+        }
+        else if(joint.getName()=="RH_KFE"){
+            currentPos = js_msg.position[11];
+        }else{
+            currentPos = joint.getPosition();
+        }
         currentVel = computeVel(currentPos, (double)lastState.position, (double)lastState.velocity, period.toSec());
         calcTorque = computeTorque(currentPos, currentVel, servoCmd);
-        std::cout<<currentPos<<" "<<servoCmd.posStiffness<<" "<<currentVel<<" "<<servoCmd.velStiffness<<" "<<calcTorque<<std::endl;
+        //std::cout<<currentPos<<" "<<servoCmd.posStiffness<<" "<<currentVel<<" "<<servoCmd.velStiffness<<" "<<calcTorque<<std::endl;
         effortLimits(servoCmd.torque);
 //                std::cout<<"+++++++++++++++++++++++++++++++++"<<std::endl;
 //                std::cout<<calcTorque<<std::endl;
         effortLimits(calcTorque);
 
         joint.setCommand(calcTorque);
+//        std::cout<<"+++++++++++++++++++++++++++++++++"<<std::endl;
+//        //std::cout<<robot_state_handle.getPosition()[0]<<std::endl;
+//        //std::cout<<robot_state_handle.getPosition()[1]<<std::endl;
+//        //std::cout<<robot_state_handle.getPosition()[2]<<std::endl;
+////        std::cout<<joint.getName()<<std::endl;
+//        std::cout<<joint.getName()<<std::endl;
+//        std::cout<<currentPos<<std::endl;
+
+//////        std::cout<<joint.getEffort()<<std::endl;
+//////        std::cout<<joint.getCommand()<<std::endl;
+////        std::cout<<calcTorque<<std::endl;
+//////        std::cout<<robot_state_data_.position[0]<<std::endl;
+//////        std::cout<<robot_state_data_.position[1]<<std::endl;
+//////        std::cout<<robot_state_data_.position[2]<<std::endl;
+//        std::cout<<"+++++++++++++++++++++++++++++++++"<<std::endl;
 
         lastState.position = currentPos;
         lastState.velocity = currentVel;

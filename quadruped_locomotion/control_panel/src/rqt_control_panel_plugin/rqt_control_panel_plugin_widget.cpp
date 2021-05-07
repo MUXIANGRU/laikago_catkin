@@ -33,6 +33,10 @@ rqt_control_panel_plugin_widget::rqt_control_panel_plugin_widget(const ros::Node
 
   laikago_position_init = nodehandle_.serviceClient<std_srvs::SetBool>("/laikago_position_init",false);
 
+  laikago_position_readfile = nodehandle_.serviceClient<std_srvs::SetBool>("/laikago_position_readfile",false);
+
+  laikago_position_readfile_stop = nodehandle_.serviceClient<std_srvs::SetBool>("/laikago_position_readfile_stop",false);
+
   laikago_position_init_stop = nodehandle_.serviceClient<std_srvs::SetBool>("/laikago_position_init_stop",false);
 
   eStopPublisher_ = nodehandle_.advertise<std_msgs::Bool>("/e_stop", 1);
@@ -271,6 +275,24 @@ void rqt_control_panel_plugin_widget::on_Controllers_currentChanged(int index)
           displayOutputInfos("green", "Switch to Single Leg Controller");
         }
     }
+  else if (tab_name == "laikago_controller") {
+        std::cout<<"laikago_controller"<<std::endl;
+        eStopPublisher_.publish(e_stop_msg);
+        controller_switch.request.start_controllers.push_back("laikago_controller");
+        controller_switch.request.stop_controllers.push_back(current_controller.c_str());
+        controller_switch.request.strictness = controller_switch.request.STRICT;
+        switchControllerClient_.call(controller_switch.request, controller_switch.response);
+        my_switchControllerClient_.call(controller_switch.request, controller_switch.response);
+
+//        control_method.request.configure = "Joint Effort";
+//        switchControlMethodClient_.call(control_method.request, control_method.response);
+
+//        if(controller_switch.response.ok && control_method.response.result)
+//          {
+//            control_method_ = JOINT_EFFORT;
+//            displayOutputInfos("green", "Switch to Single Leg Controller");
+//          }
+      }
 }
 
 void rqt_control_panel_plugin_widget::displayOutputInfos(const std::string &color,
@@ -317,6 +339,18 @@ void rqt_control_panel_plugin_widget::on_paceButton_clicked()
     {
       displayOutputInfos("green", "Starting Pacing......");
     }
+}
+
+void rqt_control_panel_plugin_widget::on_readBotton_clicked(){
+    std_srvs::SetBool read_open;
+    read_open.request.data = true;
+    laikago_position_readfile.call(read_open.request, read_open.response);
+}
+
+void rqt_control_panel_plugin_widget::on_stopreadBotton_clicked(){
+    std_srvs::SetBool read_stop;
+    read_stop.request.data = true;
+    laikago_position_readfile_stop.call(read_stop.request, read_stop.response);
 }
 
 void rqt_control_panel_plugin_widget::on_stopBotton_clicked()

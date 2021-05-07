@@ -21,6 +21,8 @@ Use of this source code is governed by the MPL-2.0 license, see LICENSE.
 #include "laikago_msgs/MotorCmd.h"
 #include "laikago_msgs/MotorState.h"
 #include <geometry_msgs/WrenchStamped.h>
+#include <balance_controller/ros_controler/robot_state_interface.hpp>
+#include "sensor_msgs/JointState.h"
 
 #define PMSM      (0x0A)
 #define PosStopF  (2.146E+9f)
@@ -31,9 +33,17 @@ namespace laikago_controller{
     {
         private:
             hardware_interface::JointHandle joint;
-            ros::Subscriber sub_cmd;
+            hardware_interface::RobotStateHandle::Data robot_state_data_;
+            hardware_interface::RobotStateHandle robot_state_handle;
+            hardware_interface::RobotStateInterface robot_state_interface_;
+            ros::Subscriber sub_cmd,js_sub_;
             control_toolbox::Pid pid_controller_;
             boost::scoped_ptr<realtime_tools::RealtimePublisher<laikago_msgs::MotorState> > controller_state_publisher_ ;
+            double pos_read[12], pos_write[12], vel_read[12], vel_write[12], eff_read[12],eff_write[12];
+            double position[3], orinetation[4], linear_vel[3], angular_vel[3],contact_pressure[4];
+            int foot_contact[4],motor_status_word[12],mode_of_joint[12];
+            sensor_msgs::JointState js_msg;
+
         public:
             // bool start_up;
             std::string name_space;
@@ -50,6 +60,7 @@ namespace laikago_controller{
             virtual void update(const ros::Time& time, const ros::Duration& period);
             virtual void stopping();
             void setCommandCB(const laikago_msgs::MotorCmdConstPtr& msg);
+            void jsCallback(const sensor_msgs::JointState::ConstPtr& msg);
             void positionLimits(double &position);
             void velocityLimits(double &velocity);
             void effortLimits(double &effort);

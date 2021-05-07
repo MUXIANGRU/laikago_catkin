@@ -172,3 +172,66 @@ configure_change_controller:
   type: balance_controller/configure_change_controller
   ignore_contact_sensor: true
   joints: ['LF_HAA', 'LF_HFE', 'LF_KFE', 'RF_HAA', 'RF_HFE', 'RF_KFE', 'RH_HAA', 'RH_HFE', 'RH_KFE', 'LH_HAA', 'LH_HFE', 'LH_KFE']
+
+FL_hip_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: LF_HAA
+  pid: {p: 100.0, i: 0.0, d: 5.0}
+
+FL_thigh_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: LF_HFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+FL_calf_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: LF_KFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+    # FR Controllers ---------------------------------------
+FR_hip_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: RF_HAA
+  pid: {p: 100.0, i: 0.0, d: 5.0}
+
+FR_thigh_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: RF_HFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+FR_calf_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: RF_KFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+    # RL Controllers ---------------------------------------
+RL_hip_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: LH_HAA
+  pid: {p: 100.0, i: 0.0, d: 5.0}
+
+RL_thigh_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: LH_HFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+RL_calf_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: LH_KFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+    # RR Controllers ---------------------------------------
+RR_hip_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: RH_HAA
+  pid: {p: 100.0, i: 0.0, d: 5.0}
+
+RR_thigh_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: RH_HFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}
+
+RR_calf_controller:
+  type: laikago_controller/LaikagoJointController
+  joint: RH_KFE
+  pid: {p: 300.0, i: 0.0, d: 8.0}

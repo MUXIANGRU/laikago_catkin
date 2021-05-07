@@ -52,4 +52,7 @@ target_link_libraries(laikago_external_force ${catkin_LIBRARIES})
 add_executable(laikago_servo src/exe/servo.cpp)
 target_link_libraries(laikago_servo ${PROJECT_NAME} ${catkin_LIBRARIES})
 
+add_executable(laikago_servo_real src/exe/servo_real.cpp)
+target_link_libraries(laikago_servo_real ${PROJECT_NAME} ${catkin_LIBRARIES})
+
 

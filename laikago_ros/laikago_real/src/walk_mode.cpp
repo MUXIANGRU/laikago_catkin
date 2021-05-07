@@ -10,6 +10,7 @@ Use of this source code is governed by the MPL-2.0 license, see LICENSE.
 #include <laikago_msgs/HighCmd.h>
 #include <laikago_msgs/HighState.h>
 #include "laikago_sdk/laikago_sdk.hpp"
+#include <geometry_msgs/Vector3.h>
 
 using namespace laikago;
 
@@ -18,6 +19,8 @@ HighCmd SendHighLCM = {0};
 HighState RecvHighLCM = {0};
 laikago_msgs::HighCmd SendHighROS;
 laikago_msgs::HighState RecvHighROS;
+geometry_msgs::Vector3 forwardPosition,sidePosition,height;
+ros::Publisher forward_pub,side_pub,height_pub;
 
 Control control(HIGHLEVEL);
 LCM roslcm;
@@ -33,6 +36,28 @@ void* update_loop(void* data)
     }
 }
 
+geometry_msgs::Vector3 getFP(laikago_msgs::HighState &RecvHighROS){
+    geometry_msgs::Vector3 forward;
+    forward.x = RecvHighROS.forwardPosition.x;
+    forward.y = RecvHighROS.forwardPosition.y;
+    forward.z = RecvHighROS.forwardPosition.z;
+    return forward;
+}
+
+geometry_msgs::Vector3 getSP(laikago_msgs::HighState &RecvHighROS){
+    geometry_msgs::Vector3 side;
+    side.x = RecvHighROS.sidePosition.x;
+    side.y = RecvHighROS.sidePosition.y;
+    side.z = RecvHighROS.sidePosition.z;
+    return side;
+}
+
+geometry_msgs::Vector3 getH(laikago_msgs::HighState &RecvHighROS){
+    geometry_msgs::Vector3 h;
+    h.z = RecvHighROS.bodyHeight;
+    return h;
+}
+
 int main(int argc, char *argv[])
 {
     std::cout << "WARNING: Control level is set to HIGH-level." << std::endl
@@ -44,6 +69,9 @@ int main(int argc, char *argv[])
     ros::NodeHandle n;
     ros::Rate loop_rate(500);
     roslcm.SubscribeState();
+    forward_pub = n.advertise<geometry_msgs::Vector3>("/forward_position",1);
+    side_pub = n.advertise<geometry_msgs::Vector3>("/side_position",1);
+    height_pub = n.advertise<geometry_msgs::Vector3>("/height",1);
 
     pthread_t tid;
     pthread_create(&tid, NULL, update_loop, NULL);
@@ -54,66 +82,75 @@ int main(int argc, char *argv[])
         memcpy(&RecvHighROS, &RecvHighLCM, sizeof(HighState));
         printf("%f\n",  RecvHighROS.forwardSpeed);
 
-        SendHighROS.forwardSpeed = 0.0f;
-        SendHighROS.sideSpeed = 0.0f;
-        SendHighROS.rotateSpeed = 0.0f;
-        SendHighROS.forwardSpeed = 0.0f;
+        forwardPosition = getFP(RecvHighROS);
+        sidePosition = getSP(RecvHighROS);
+        height = getH(RecvHighROS);
 
-        SendHighROS.mode = 0;
-        SendHighROS.roll  = 0;
-        SendHighROS.pitch = 0;
-        SendHighROS.yaw = 0;
+        forward_pub.publish(forwardPosition);
+        side_pub.publish(sidePosition);
+        height_pub.publish(height);
 
-        if(motiontime>1000 && motiontime<1500){
-            SendHighROS.roll = 0.5f;
-        }
 
-        if(motiontime>1500 && motiontime<2000){
-            SendHighROS.pitch = 0.3f;
-        }
+//        SendHighROS.forwardSpeed = 0.0f;
+//        SendHighROS.sideSpeed = 0.0f;
+//        SendHighROS.rotateSpeed = 0.0f;
+//        SendHighROS.forwardSpeed = 0.0f;
 
-        if(motiontime>2000 && motiontime<2500){
-            SendHighROS.yaw = 0.3f;
-        }
+//        SendHighROS.mode = 0;
+//        SendHighROS.roll  = 0;
+//        SendHighROS.pitch = 0;
+//        SendHighROS.yaw = 0;
 
-        if(motiontime>2500 && motiontime<3000){
-            SendHighROS.bodyHeight = -0.3f;
-        }
+//        if(motiontime>1000 && motiontime<1500){
+//            SendHighROS.roll = 0.5f;
+//        }
 
-        if(motiontime>3000 && motiontime<3500){
-            SendHighROS.bodyHeight = 0.3f;
-        }
+//        if(motiontime>1500 && motiontime<2000){
+//            SendHighROS.pitch = 0.3f;
+//        }
 
-        if(motiontime>3500 && motiontime<4000){
-            SendHighROS.bodyHeight = 0.0f;
-        }
+//        if(motiontime>2000 && motiontime<2500){
+//            SendHighROS.yaw = 0.3f;
+//        }
 
-        if(motiontime>4000 && motiontime<5000){
-            SendHighROS.mode = 2;
-        }
+//        if(motiontime>2500 && motiontime<3000){
+//            SendHighROS.bodyHeight = -0.3f;
+//        }
 
-        if(motiontime>5000 && motiontime<8500){
-            SendHighROS.forwardSpeed = 0.2f; // -1  ~ +1
-        }
+//        if(motiontime>3000 && motiontime<3500){
+//            SendHighROS.bodyHeight = 0.3f;
+//        }
 
-        if(motiontime>8500 && motiontime<12000){
-            SendHighROS.forwardSpeed = -0.2f; // -1  ~ +1
-        }
+//        if(motiontime>3500 && motiontime<4000){
+//            SendHighROS.bodyHeight = 0.0f;
+//        }
 
-        if(motiontime>12000 && motiontime<16000){
-            SendHighROS.rotateSpeed = 0.3f;   // turn
-        }
+//        if(motiontime>4000 && motiontime<5000){
+//            SendHighROS.mode = 2;
+//        }
 
-        if(motiontime>16000 && motiontime<20000){
-            SendHighROS.rotateSpeed = -0.3f;   // turn
-        }
+//        if(motiontime>5000 && motiontime<8500){
+//            SendHighROS.forwardSpeed = 0.2f; // -1  ~ +1
+//        }
 
-        if(motiontime>20000 && motiontime<21000){
-            SendHighROS.mode = 1;
-        }
+//        if(motiontime>8500 && motiontime<12000){
+//            SendHighROS.forwardSpeed = -0.2f; // -1  ~ +1
+//        }
 
-        memcpy(&SendHighLCM, &SendHighROS, sizeof(HighCmd));
-        roslcm.Send(SendHighLCM);
+//        if(motiontime>12000 && motiontime<16000){
+//            SendHighROS.rotateSpeed = 0.3f;   // turn
+//        }
+
+//        if(motiontime>16000 && motiontime<20000){
+//            SendHighROS.rotateSpeed = -0.3f;   // turn
+//        }
+
+//        if(motiontime>20000 && motiontime<21000){
+//            SendHighROS.mode = 1;
+//        }
+
+//        memcpy(&SendHighLCM, &SendHighROS, sizeof(HighCmd));
+//        roslcm.Send(SendHighLCM);
         ros::spinOnce();
         loop_rate.sleep(); 
     }

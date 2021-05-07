@@ -23,6 +23,7 @@
 
 #include "elevation_mapping/ElevationMap.hpp"
 #include "elevation_mapping/ElevationMapping.hpp"
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
 #include "elevation_mapping/sensor_processors/LaserSensorProcessor.hpp"
 #include "elevation_mapping/sensor_processors/PerfectSensorProcessor.hpp"
 #include "elevation_mapping/sensor_processors/StereoSensorProcessor.hpp"
@@ -32,48 +33,41 @@ namespace elevation_mapping {
 
 ElevationMapping::ElevationMapping(ros::NodeHandle& nodeHandle)
     : nodeHandle_(nodeHandle),
-      inputSources_(nodeHandle_),    //manage the input message?
-      robotPoseCacheSize_(200),      //Size of the cache for the robot pose messages
-      map_(nodeHandle),              //elevation map object
-      robotMotionMapUpdater_(nodeHandle),  //object(Computes the map variance update from the pose covariance of the robot)
-      ignoreRobotMotionUpdates_(false),    //ignore robotmotion or not
-      updatesEnabled_(true),               //update the map or not(If false, elevation mapping stops updating)
-      isContinuouslyFusing_(false),        //If map is fused after every change for debugging/analysis purposes.
-      receivedFirstMatchingPointcloudAndPose_(false),  //Becomes true when corresponding poses and point clouds can be found
-      initializeElevationMap_(false),    //Enables initialization of the elevation map
-      initializationMethod_(0),          //Enum to choose the initialization method
-      lengthInXInitSubmap_(1.2),         //Width of submap of the elevation map with a constant height
-      lengthInYInitSubmap_(1.8),         //Length of submap of the elevation map with a constant height
-      marginInitSubmap_(0.3),            //Margin of submap of the elevation map with a constant height
-      initSubmapHeightOffset_(0.0)       //Additional offset of the height value
-{
+      inputSources_(nodeHandle_),
+      robotPoseCacheSize_(200),
+      map_(nodeHandle),
+      //map_guassian({"elevation"}),
+      robotMotionMapUpdater_(nodeHandle),
+      ignoreRobotMotionUpdates_(false),
+      updatesEnabled_(true),
+      isContinuouslyFusing_(false),
+      receivedFirstMatchingPointcloudAndPose_(false),
+      initializeElevationMap_(false),
+      initializationMethod_(0),
+      lengthInXInitSubmap_(1.2),
+      lengthInYInitSubmap_(1.8),
+      marginInitSubmap_(0.3),
+      initSubmapHeightOffset_(0.0) {
   ROS_INFO("Elevation mapping node started.");
 
-  readParameters();             //load  parameter from .yaml
-  setupSubscribers();           //subscriber of pointcloud(the last version is deprecated)
+  readParameters();
+  setupSubscribers();
 
   mapUpdateTimer_ = nodeHandle_.createTimer(maxNoUpdateDuration_, &ElevationMapping::mapUpdateTimerCallback, this, true, false);
 
   // Multi-threading for fusion.
-  //triger_fusion:Trigger the fusing process for the entire elevation map and publish it.
-  //For example, you can trigger the map fusion step from the console with
   ros::AdvertiseServiceOptions advertiseServiceOptionsForTriggerFusion = ros::AdvertiseServiceOptions::create<std_srvs::Empty>(
       "trigger_fusion", boost::bind(&ElevationMapping::fuseEntireMap, this, _1, _2), ros::VoidConstPtr(), &fusionServiceQueue_);
   fusionTriggerService_ = nodeHandle_.advertiseService(advertiseServiceOptionsForTriggerFusion);
 
-  //get_submap:Get a fused elevation submap for a requested position and size. For example, you can get the fused elevation submap
-  //at position (-0.5, 0.0) and size (0.5, 1.2) described in the odom frame and save it to a text file form the console with
   ros::AdvertiseServiceOptions advertiseServiceOptionsForGetFusedSubmap = ros::AdvertiseServiceOptions::create<grid_map_msgs::GetGridMap>(
       "get_submap", boost::bind(&ElevationMapping::getFusedSubmap, this, _1, _2), ros::VoidConstPtr(), &fusionServiceQueue_);
   fusedSubmapService_ = nodeHandle_.advertiseService(advertiseServiceOptionsForGetFusedSubmap);
 
-  //Get a raw elevation submap for a requested position and size. For example, you can get the raw elevation submap
-  //at position (-0.5, 0.0) and size (0.5, 1.2) described in the odom frame and save it to a text file form the console with
   ros::AdvertiseServiceOptions advertiseServiceOptionsForGetRawSubmap = ros::AdvertiseServiceOptions::create<grid_map_msgs::GetGridMap>(
       "get_raw_submap", boost::bind(&ElevationMapping::getRawSubmap, this, _1, _2), ros::VoidConstPtr(), &fusionServiceQueue_);
   rawSubmapService_ = nodeHandle_.advertiseService(advertiseServiceOptionsForGetRawSubmap);
 
-  //create a fusemap Timer
   if (!fusedMapPublishTimerDuration_.isZero()) {
     ros::TimerOptions timerOptions =
         ros::TimerOptions(fusedMapPublishTimerDuration_, boost::bind(&ElevationMapping::publishFusedMapCallback, this, _1),
@@ -82,14 +76,6 @@ ElevationMapping::ElevationMapping(ros::NodeHandle& nodeHandle)
   }
 
   // Multi-threading for visibility cleanup. Visibility clean-up does not help when continuous clean-up is enabled.
-  //clear_map:Initiates clearing of the entire map for resetting purposes.
-  //enable_updates:Start updating the elevation map with sensor input.
-  //disable_updates:Stops updating the elevation map with sensor input.
-  //masked_replace:Allows for setting the individual layers of the elevation map through a service call. The layer mask can be used to only set certain cells and not the entire map.
-                 //Cells containing NAN in the mask are not set, all the others are set. If the layer mask is not supplied,
-                 //the entire map will be set in the intersection of both maps. The provided map can be of different size and position than the map that will be altered.
-  //save_map:Saves the current fused grid map and raw grid map to rosbag files.
-  //load_map:Loads the fused grid map and raw grid map from rosbag files.
   if (map_.enableVisibilityCleanup_ && !visibilityCleanupTimerDuration_.isZero() && !map_.enableContinuousCleanup_) {
     ros::TimerOptions timerOptions =
         ros::TimerOptions(visibilityCleanupTimerDuration_, boost::bind(&ElevationMapping::visibilityCleanupCallback, this, _1),
@@ -104,7 +90,10 @@ ElevationMapping::ElevationMapping(ros::NodeHandle& nodeHandle)
   saveMapService_ = nodeHandle_.advertiseService("save_map", &ElevationMapping::saveMap, this);
   loadMapService_ = nodeHandle_.advertiseService("load_map", &ElevationMapping::loadMap, this);
 
-  initialize();    //Done initializing
+  map_sub_ = nodeHandle_.subscribe("/fused_map",1,&ElevationMapping::subMap, this);
+  var_pub_ = nodeHandle_.advertise<geometry_msgs::Vector3>("/mxr_covariance",1);
+
+  initialize();
 }
 
 void ElevationMapping::setupSubscribers() {  // Handle deprecated point_cloud_topic and input_sources configuration.
@@ -114,13 +103,11 @@ void ElevationMapping::setupSubscribers() {  // Handle deprecated point_cloud_to
     ROS_WARN("Parameter 'point_cloud_topic' is deprecated, please use 'input_sources' instead.");
   }
   if (!configuredInputSources && hasDeprecatedPointcloudTopic) {
-      //MXR::node
-      //if we choose pointCloud topic,it seems that we don't use registerCallback in input.hpp
     pointCloudSubscriber_ = nodeHandle_.subscribe<sensor_msgs::PointCloud2>(
-        pointCloudTopic_, 1, std::bind(&ElevationMapping::pointCloudCallback, this, std::placeholders::_1, true));
+        pointCloudTopic_, 1,
+        std::bind(&ElevationMapping::pointCloudCallback, this, std::placeholders::_1, true, std::ref(sensorProcessor_)));
   }
   if (configuredInputSources) {
-      //Registers the corresponding callback in the elevationMap.
     inputSources_.registerCallbacks(*this, make_pair("pointcloud", &ElevationMapping::pointCloudCallback));
   }
 
@@ -249,17 +236,20 @@ bool ElevationMapping::readParameters() {
   nodeHandle_.param("init_submap_height_offset", initSubmapHeightOffset_, 0.0);
   nodeHandle_.param("target_frame_init_submap", targetFrameInitSubmap_, std::string("/footprint"));
 
-  // SensorProcessor parameters.
+  // SensorProcessor parameters. Deprecated, use the sensorProcessor from within input sources instead!
   std::string sensorType;
   nodeHandle_.param("sensor_processor/type", sensorType, std::string("structured_light"));
+
+  SensorProcessorBase::GeneralParameters generalSensorProcessorConfig{nodeHandle_.param("robot_base_frame_id", std::string("/robot")),
+                                                                      mapFrameId_};
   if (sensorType == "structured_light") {
-    sensorProcessor_.reset(new StructuredLightSensorProcessor(nodeHandle_, transformListener_));
+    sensorProcessor_.reset(new StructuredLightSensorProcessor(nodeHandle_, generalSensorProcessorConfig));
   } else if (sensorType == "stereo") {
-    sensorProcessor_.reset(new StereoSensorProcessor(nodeHandle_, transformListener_));
+    sensorProcessor_.reset(new StereoSensorProcessor(nodeHandle_, generalSensorProcessorConfig));
   } else if (sensorType == "laser") {
-    sensorProcessor_.reset(new LaserSensorProcessor(nodeHandle_, transformListener_));
+    sensorProcessor_.reset(new LaserSensorProcessor(nodeHandle_, generalSensorProcessorConfig));
   } else if (sensorType == "perfect") {
-    sensorProcessor_.reset(new PerfectSensorProcessor(nodeHandle_, transformListener_));
+    sensorProcessor_.reset(new PerfectSensorProcessor(nodeHandle_, generalSensorProcessorConfig));
   } else {
     ROS_ERROR("The sensor type %s is not available.", sensorType.c_str());
   }
@@ -302,7 +292,22 @@ void ElevationMapping::visibilityCleanupThread() {
   }
 }
 
-void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pointCloudMsg, bool publishPointCloud) {
+void ElevationMapping::subMap(const grid_map_msgs::GridMap &grid_map){
+    //map_guassian.setBasicLayers({"elevation"});
+    grid_map::GridMapRosConverter::fromMessage(grid_map,map_guassian);
+//    for(int i=0;i<map_guassian.getLayers().size();i++){
+//        std::cout<<map_guassian.getLayers()[i]<<std::endl;
+//    }
+    map_guassian.setBasicLayers({"foot_layer_variance","vegetable_layer_variance","final_fused","final_cov"});
+//    std::cout<<"fen ge xian xia mian=============="<<std::endl;
+//    for(int i=0;i<map_guassian.getBasicLayers().size();i++){
+//        std::cout<<map_guassian.getBasicLayers()[i]<<std::endl;
+//    }
+    map_.fromTopic(map_guassian);
+}
+
+void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& pointCloudMsg, bool publishPointCloud,
+                                          const SensorProcessorBase::Ptr& sensorProcessor_) {
   ROS_DEBUG("Processing data from: %s", pointCloudMsg->header.frame_id.c_str());
   if (!updatesEnabled_) {
     ROS_WARN_THROTTLE(10, "Updating of elevation map is disabled. (Warning message is throttled, 10s.)");
@@ -334,11 +339,11 @@ void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr
   pcl::PCLPointCloud2 pcl_pc;
   pcl_conversions::toPCL(*pointCloudMsg, pcl_pc);
 
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  PointCloudType::Ptr pointCloud(new PointCloudType);
   pcl::fromPCLPointCloud2(pcl_pc, *pointCloud);
   lastPointCloudUpdateTime_.fromNSec(1000 * pointCloud->header.stamp);
 
-  ROS_WARN("ElevationMap received a point cloud (%i points) for elevation mapping.", static_cast<int>(pointCloud->size()));
+  ROS_DEBUG("ElevationMap received a point cloud (%i points) for elevation mapping.", static_cast<int>(pointCloud->size()));
 
   // Get robot pose covariance matrix at timestamp of point cloud.
   Eigen::Matrix<double, 6, 6> robotPoseCovariance;
@@ -360,9 +365,10 @@ void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr
   }
 
   // Process point cloud.
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloudProcessed(new pcl::PointCloud<pcl::PointXYZRGB>);
+  PointCloudType::Ptr pointCloudProcessed(new PointCloudType);
   Eigen::VectorXf measurementVariances;
-  if (!sensorProcessor_->process(pointCloud, robotPoseCovariance, pointCloudProcessed, measurementVariances)) {
+  if (!sensorProcessor_->process(pointCloud, robotPoseCovariance, pointCloudProcessed, measurementVariances,
+                                 pointCloudMsg->header.frame_id)) {
     if (!sensorProcessor_->isTfAvailableInBuffer()) {
       ROS_INFO_THROTTLE(10, "Waiting for tf transformation to be available. (Message is throttled, 10s.)");
       return;
@@ -392,14 +398,15 @@ void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr
 
   // Add point cloud to elevation map.
   if (!map_.add(pointCloudProcessed, measurementVariances, lastPointCloudUpdateTime_,
-                Eigen::Affine3d(sensorProcessor_->transformationSensorToMap_))) {
+                Eigen::Affine3d(sensorProcessor_->transformationSensorToMap_),map_guassian)) {
     ROS_ERROR("Adding point cloud to elevation map failed.");
     resetMapUpdateTimer();
     return;
   }
 
+  my_cov.x = map_.mxr_covariance;
+  var_pub_.publish(my_cov);
   if (publishPointCloud) {
-    //ROS_WARN("the elevation map is published.............................");
     // Publish elevation map.
     map_.publishRawElevationMap();
     if (isContinuouslyFusing_ && map_.hasFusedMapSubscribers()) {
@@ -411,9 +418,6 @@ void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr
   resetMapUpdateTimer();
 }
 
-//* Callback function for the update timer. Forces an update of the map from
-//* the robot's motion if no new measurements are received for a certain time
-//* period.
 void ElevationMapping::mapUpdateTimerCallback(const ros::TimerEvent&) {
   if (!updatesEnabled_) {
     ROS_WARN_THROTTLE(10, "Updating of elevation map is disabled. (Warning message is throttled, 10s.)");
@@ -439,7 +443,6 @@ void ElevationMapping::mapUpdateTimerCallback(const ros::TimerEvent&) {
     return;
   }
 
-  std::cout<<"ElevationMapping::mapUpdateTimerCallback(const ros::TimerEvent&).............."<<std::endl;
   // Publish elevation map.
   map_.publishRawElevationMap();
   if (isContinuouslyFusing_ && map_.hasFusedMapSubscribers()) {
@@ -450,11 +453,8 @@ void ElevationMapping::mapUpdateTimerCallback(const ros::TimerEvent&) {
   resetMapUpdateTimer();
 }
 
-//MXR::note:
-//the following is trigger once we subscribe to /elevation_map (the default is /elevation_map_raw)
 void ElevationMapping::publishFusedMapCallback(const ros::TimerEvent&) {
   if (!map_.hasFusedMapSubscribers()) {
-      //std::cout<<"666666666666666"<<std::endl;
     return;
   }
   ROS_DEBUG("Elevation map is fused and published from timer.");
@@ -468,17 +468,14 @@ void ElevationMapping::visibilityCleanupCallback(const ros::TimerEvent&) {
   // Copy constructors for thread-safety.
   map_.visibilityCleanup(ros::Time(lastPointCloudUpdateTime_));
 }
-//   * ROS service callback function to trigger the fusion of the entire
-//   * elevation map.
-//   call to trigger_fusion
+
 bool ElevationMapping::fuseEntireMap(std_srvs::Empty::Request&, std_srvs::Empty::Response&) {
   boost::recursive_mutex::scoped_lock scopedLock(map_.getFusedDataMutex());
   map_.fuseAll();
   map_.publishFusedElevationMap();
   return true;
 }
-//   * Update the elevation map from the robot motion up to a certain time.
-// uodate the robot motion(pose and pose.covariance)
+
 bool ElevationMapping::updatePrediction(const ros::Time& time) {
   if (ignoreRobotMotionUpdates_) {
     return true;
@@ -520,22 +517,16 @@ bool ElevationMapping::updatePrediction(const ros::Time& time) {
   return true;
 }
 
-//relocalization in th built map???
-//is this concerned with the map can move or not
 bool ElevationMapping::updateMapLocation() {
-  ROS_INFO("Elevation map is checked for relocalization.");
   ROS_DEBUG("Elevation map is checked for relocalization.");
 
   geometry_msgs::PointStamped trackPoint;
   trackPoint.header.frame_id = trackPointFrameId_;
   trackPoint.header.stamp = ros::Time(0);
-  //std::cout<<"++++++++++++++++++++"<<std::endl;
-  //std::cout<<trackPoint<<std::endl;
   kindr_ros::convertToRosGeometryMsg(trackPoint_, trackPoint.point);
   geometry_msgs::PointStamped trackPointTransformed;
 
   try {
-      //utilize the tf between /odom and /base_link to get delta position
     transformListener_.transformPoint(map_.getFrameId(), trackPoint, trackPointTransformed);
   } catch (tf::TransformException& ex) {
     ROS_ERROR("%s", ex.what());
@@ -545,16 +536,10 @@ bool ElevationMapping::updateMapLocation() {
   kindr::Position3D position3d;
   kindr_ros::convertFromRosGeometryMsg(trackPointTransformed.point, position3d);
   grid_map::Position position = position3d.vector().head(2);
-  //std::cout<<"++++++++++++++++++++"<<std::endl;
-  //std::cout<<position<<std::endl;
   map_.move(position);
   return true;
 }
-// call to the service(get_submap)
-// grid_map::Position
-// grid_map::Length
-// grid_map::Index
-// grid_map::GridMap  the object of grid_map(which can convert to ROSMSG grid_map_msgs::GridMap)
+
 bool ElevationMapping::getFusedSubmap(grid_map_msgs::GetGridMap::Request& request, grid_map_msgs::GetGridMap::Response& response) {
   grid_map::Position requestedSubmapPosition(request.position_x, request.position_y);
   grid_map::Length requestedSubmapLength(request.length_x, request.length_y);
@@ -617,8 +602,7 @@ bool ElevationMapping::enableUpdates(std_srvs::Empty::Request& /*request*/, std_
   updatesEnabled_ = true;
   return true;
 }
-//Initializes a submap around the robot of the elevation map with a constant height
-//but in the config.yaml this value is set false
+//MXR::NOTE: We don't use submap to init,because initialize_elevation_map is false
 bool ElevationMapping::initializeElevationMap() {
   if (initializeElevationMap_) {
     if (static_cast<elevation_mapping::InitializationMethods>(initializationMethod_) ==
@@ -659,7 +643,7 @@ bool ElevationMapping::clearMap(std_srvs::Empty::Request& /*request*/, std_srvs:
 
   return success;
 }
-//This need to call service
+
 bool ElevationMapping::maskedReplace(grid_map_msgs::SetGridMap::Request& request, grid_map_msgs::SetGridMap::Response& /*response*/) {
   ROS_INFO("Masked replacing of map.");
   grid_map::GridMap sourceMap;

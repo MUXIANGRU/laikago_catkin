@@ -178,10 +178,15 @@ void Executor::clearFeedbackDescription()
 
 void Executor::reset()
 {
+    std::cout<<"find for first position***************"<<std::endl;
   queue_.clear();
+  std::cout<<"find for second position***************"<<std::endl;
   resetStateWithRobot();
+  std::cout<<"find for third position***************"<<std::endl;
   adapter_.resetExtrasWithRobot(queue_, state_);
+  std::cout<<"find for fourth position***************"<<std::endl;
   clearFeedbackDescription();
+  std::cout<<"find for fifth position***************"<<std::endl;
 }
 
 const StepQueue& Executor::getQueue() const

@@ -15,10 +15,6 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-// PCL
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-
 // Kindr
 #include <kindr/Core>
 
@@ -28,7 +24,8 @@
 // ROS
 #include <ros/ros.h>
 
-// Postprocessing
+// Elevation Mapping
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
 #include "elevation_mapping/postprocessing/PostprocessorPool.hpp"
 
 namespace elevation_mapping {
@@ -48,6 +45,9 @@ class ElevationMap {
    */
   virtual ~ElevationMap();
 
+
+  void fromTopic(const grid_map::GridMap& grid_map);
+
   /*!
    * Set the geometry of the elevation map. Clears all the data.
    * @param length the side lengths in x, and y-direction of the elevation map [m].
@@ -65,8 +65,8 @@ class ElevationMap {
    * @param transformationSensorToMap
    * @return true if successful.
    */
-  bool add(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointCloud, Eigen::VectorXf& pointCloudVariances, const ros::Time& timeStamp,
-           const Eigen::Affine3d& transformationSensorToMap);
+  bool add(const PointCloudType::Ptr pointCloud, Eigen::VectorXf& pointCloudVariances, const ros::Time& timeStamp,
+           const Eigen::Affine3d& transformationSensorToMap,const grid_map::GridMap& pre_footmap);
 
   /*!
    * Update the elevation map with variance update data.
@@ -332,6 +332,8 @@ class ElevationMap {
   bool enableContinuousCleanup_;
   double visibilityCleanupDuration_;
   double scanningDuration_;
+  double mxr_covariance;
+  double variance,variance1;
 };
 
 }  // namespace elevation_mapping

@@ -52,7 +52,7 @@ grid_map::GridMap PostprocessingPipelineFunctor::operator()(GridMap& inputMap) {
   return outputMap;
 }
 
-void PostprocessingPipelineFunctor::publish(GridMap& gridMap) const {
+void PostprocessingPipelineFunctor::publish(const GridMap& gridMap) const {
   // Publish filtered output grid map.
   grid_map_msgs::GridMap outputMessage;
   grid_map::GridMapRosConverter::toMessage(gridMap, outputMessage);
@@ -60,7 +60,7 @@ void PostprocessingPipelineFunctor::publish(GridMap& gridMap) const {
   ROS_DEBUG("Elevation map raw has been published.");
 }
 
-bool PostprocessingPipelineFunctor::pipelineHasSubscribers() const {
+bool PostprocessingPipelineFunctor::hasSubscribers() const {
   return publisher_.getNumSubscribers() > 0;
 }
 

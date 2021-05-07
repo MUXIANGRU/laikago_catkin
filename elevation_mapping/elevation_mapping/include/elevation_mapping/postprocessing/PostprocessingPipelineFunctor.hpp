@@ -32,7 +32,7 @@ class PostprocessingPipelineFunctor {
   using GridMap = grid_map::GridMap;
 
   /**
-   * @brief Constructor.
+   * @brief Explicit Constructor.
    * @param nodeHandle The node handle to read parameters from and to publish output data.
    */
   explicit PostprocessingPipelineFunctor(ros::NodeHandle& nodeHandle);
@@ -53,14 +53,14 @@ class PostprocessingPipelineFunctor {
    * Publishes a given grid map.
    * @param gridMap   The Grid Map that this functor will publish.
    */
-  void publish(GridMap& gridMap) const;
+  void publish(const GridMap& gridMap) const;
 
   /**
-   * Checks whether there are any subscribers to the result of this pipeline.
+   * Checks whether there are any subscribers to the result of this functor.
    *
-   * @return True if someone listens to the topic this task publishes to.
+   * @return True if someone listens to the topic this functor publishes to.
    */
-  bool pipelineHasSubscribers() const;
+  bool hasSubscribers() const;
 
  private:
   /**

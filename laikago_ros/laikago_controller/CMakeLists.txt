@@ -21,7 +21,10 @@ catkin_package(
     LIBRARIES ${PROJECT_NAME}
 )
 
-include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
+include_directories(include 
+    /home/mxr/catkin_laikago/src/quadruped_locomotion/balance_controller/include
+  ${catkin_INCLUDE_DIRS} 
+  ${Boost_INCLUDE_DIR})
 
 link_directories($(catkin_LIB_DIRS) lib)
 

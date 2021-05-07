@@ -42,7 +42,8 @@ catkin_package(
   DEPENDS
     Boost
 )
-
+include_directories("/home/mxr/catkin_gpr/src/limbo/src/")
+include_directories("/home/mxr/catkin_gpr/src/gaussian-process-regression/include/")
 include_directories(
   include
   SYSTEM
@@ -55,12 +56,21 @@ include_directories(
 # Library #
 ###########
 
+# Our custom pcl type with precompiled template instantiations.
+add_library(${PROJECT_NAME}_pcl_types
+  src/PointXYZRGBConfidenceRatio.cpp
+)
+target_link_libraries(${PROJECT_NAME}_pcl_types
+  ${catkin_LIBRARIES}
+)
+
 add_library(${PROJECT_NAME}_library
   src/ElevationMapping.cpp
   src/ElevationMap.cpp
   src/input_sources/Input.cpp
   src/input_sources/InputSourceManager.cpp
   src/postprocessing/PostprocessorPool.cpp
+  src/postprocessing/PostprocessingWorker.cpp
   src/postprocessing/PostprocessingPipelineFunctor.cpp
   src/RobotMotionMapUpdater.cpp
   src/sensor_processors/SensorProcessorBase.cpp
@@ -72,6 +82,7 @@ add_library(${PROJECT_NAME}_library
 
 target_link_libraries(${PROJECT_NAME}_library
   ${catkin_LIBRARIES}
+  ${PROJECT_NAME}_pcl_types
   pthread
 )
 
@@ -82,7 +93,14 @@ target_link_libraries(${PROJECT_NAME}_library
 add_executable(${PROJECT_NAME}
   src/elevation_mapping_node.cpp
 )
-
+#add_executable(fused_map src/fused_map.cpp)
+#add_executable(get_vegetable src/get_vegetable.cpp)
+#target_link_libraries(get_vegetable
+#  ${catkin_LIBRARIES}
+#  )
+#target_link_libraries(fused_map
+#  ${catkin_LIBRARIES}
+#  )
 target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_library
 )
@@ -94,6 +112,7 @@ target_link_libraries(${PROJECT_NAME}
 install(
   TARGETS 
     ${PROJECT_NAME}
+    ${PROJECT_NAME}_pcl_types
     ${PROJECT_NAME}_library
   ARCHIVE DESTINATION
     ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -144,7 +163,10 @@ if(CATKIN_ENABLE_TESTING)
   target_include_directories(test_${PROJECT_NAME}_cumulative_distribution
     PRIVATE
       include
-    SYSTEM
+  )
+
+  target_include_directories(test_${PROJECT_NAME}_cumulative_distribution
+    SYSTEM PUBLIC
       ${catkin_INCLUDE_DIRS}
   )
 
@@ -153,7 +175,7 @@ if(CATKIN_ENABLE_TESTING)
     test/input_sources/input_sources.test
     test/input_sources/test_input_sources.cpp
     test/input_sources/InputSourcesTest.cpp
-    )
+  )
 
   target_link_libraries(test_${PROJECT_NAME}_input_sources
     ${PROJECT_NAME}_library
@@ -162,10 +184,12 @@ if(CATKIN_ENABLE_TESTING)
   target_include_directories(test_${PROJECT_NAME}_input_sources
     PRIVATE
       include
-    SYSTEM
-      ${Boost_INCLUDE_DIRS}
-      ${catkin_INCLUDE_DIRS}
-      ${Eigen_INCLUDE_DIRS}
+  )
+
+  target_include_directories(test_${PROJECT_NAME}_input_sources SYSTEM PUBLIC
+    ${Boost_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+    ${Eigen_INCLUDE_DIRS}
   )
 
   # Postprocessor
@@ -197,7 +221,6 @@ if(CATKIN_ENABLE_TESTING)
       add_rostest_coverage(TEST_BUILD_TARGETS
         test_${PROJECT_NAME}_input_sources
       )
-
       add_rostest_coverage(TEST_BUILD_TARGETS
         test_${PROJECT_NAME}_postprocessor
       )

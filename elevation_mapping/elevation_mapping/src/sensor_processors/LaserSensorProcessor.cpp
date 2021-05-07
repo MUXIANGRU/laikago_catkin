@@ -6,12 +6,14 @@
  *   Institute: ETH Zurich, ANYbotics
  */
 
-#include <elevation_mapping/sensor_processors/LaserSensorProcessor.hpp>
+#include "elevation_mapping/sensor_processors/LaserSensorProcessor.hpp"
 
 #include <pcl/filters/passthrough.h>
 #include <limits>
 #include <string>
 #include <vector>
+
+#include "elevation_mapping/PointXYZRGBConfidenceRatio.hpp"
 
 namespace elevation_mapping {
 
@@ -25,8 +27,8 @@ namespace elevation_mapping {
  * International Conference on Applied Robotics for the Power Industry (CARPI), 2012.
  */
 
-LaserSensorProcessor::LaserSensorProcessor(ros::NodeHandle& nodeHandle, tf::TransformListener& transformListener)
-    : SensorProcessorBase(nodeHandle, transformListener) {}
+LaserSensorProcessor::LaserSensorProcessor(ros::NodeHandle& nodeHandle, const SensorProcessorBase::GeneralParameters& generalParameters)
+    : SensorProcessorBase(nodeHandle, generalParameters) {}
 
 LaserSensorProcessor::~LaserSensorProcessor() = default;
 
@@ -38,7 +40,7 @@ bool LaserSensorProcessor::readParameters() {
   return true;
 }
 
-bool LaserSensorProcessor::computeVariances(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr pointCloud,
+bool LaserSensorProcessor::computeVariances(const PointCloudType::ConstPtr pointCloud,
                                             const Eigen::Matrix<double, 6, 6>& robotPoseCovariance, Eigen::VectorXf& variances) {
   variances.resize(pointCloud->size());
 

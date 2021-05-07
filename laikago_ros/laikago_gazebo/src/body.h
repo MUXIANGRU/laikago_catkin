@@ -22,6 +22,7 @@ extern laikago_msgs::LowState lowState;
 
 void stand();
 void motion_init();
+void motion_init_real();
 void sendServoCmd();
 void moveAllPosition(double* jointPositions, double duration);
 }

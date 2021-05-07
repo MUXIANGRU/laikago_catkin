@@ -159,35 +159,6 @@ using namespace free_gait;
 //    step_msg_.base_target.resize(1);
 //    step_msg_.base_auto.resize(1);
 //    step_msg_.footstep.resize(4);
-//    limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
-//    limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
-//    limb_phase[LimbEnum::LF_LEG].swing_status = true;
-//    limb_phase[LimbEnum::LF_LEG].stance_status = false;
-//    limb_phase[LimbEnum::LF_LEG].ready_to_swing = true;
-//    limb_phase[LimbEnum::LF_LEG].real_contact = false;
-
-//    limb_phase[LimbEnum::RF_LEG].swing_phase = 0;
-//    limb_phase[LimbEnum::RF_LEG].stance_phase = 0;
-//    limb_phase[LimbEnum::RF_LEG].swing_status = false;
-//    limb_phase[LimbEnum::RF_LEG].stance_status = true;
-//    limb_phase[LimbEnum::RF_LEG].ready_to_swing = false;
-//    limb_phase[LimbEnum::RF_LEG].real_contact = true;
-
-//    limb_phase[LimbEnum::RH_LEG].swing_phase = 0;
-//    limb_phase[LimbEnum::RH_LEG].stance_phase = 0;
-//    limb_phase[LimbEnum::RH_LEG].swing_status = true;
-//    limb_phase[LimbEnum::RH_LEG].stance_status = false;
-//    limb_phase[LimbEnum::RH_LEG].ready_to_swing = true;
-//    limb_phase[LimbEnum::RH_LEG].real_contact = false;
-
-//    limb_phase[LimbEnum::LH_LEG].swing_phase = 0;
-//    limb_phase[LimbEnum::LH_LEG].stance_phase = 0;
-//    limb_phase[LimbEnum::LH_LEG].swing_status = false;
-//    limb_phase[LimbEnum::LH_LEG].stance_status = true;
-//    limb_phase[LimbEnum::LH_LEG].ready_to_swing = false;
-//    limb_phase[LimbEnum::LH_LEG].real_contact = true;
-
- //just test for pace
     limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
     limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
     limb_phase[LimbEnum::LF_LEG].swing_status = true;
@@ -204,17 +175,75 @@ using namespace free_gait;
 
     limb_phase[LimbEnum::RH_LEG].swing_phase = 0;
     limb_phase[LimbEnum::RH_LEG].stance_phase = 0;
-    limb_phase[LimbEnum::RH_LEG].swing_status = false;
-    limb_phase[LimbEnum::RH_LEG].stance_status = true;
-    limb_phase[LimbEnum::RH_LEG].ready_to_swing = false;
-    limb_phase[LimbEnum::RH_LEG].real_contact = true;
+    limb_phase[LimbEnum::RH_LEG].swing_status = true;
+    limb_phase[LimbEnum::RH_LEG].stance_status = false;
+    limb_phase[LimbEnum::RH_LEG].ready_to_swing = true;
+    limb_phase[LimbEnum::RH_LEG].real_contact = false;
 
     limb_phase[LimbEnum::LH_LEG].swing_phase = 0;
     limb_phase[LimbEnum::LH_LEG].stance_phase = 0;
-    limb_phase[LimbEnum::LH_LEG].swing_status = true;
-    limb_phase[LimbEnum::LH_LEG].stance_status = false;
-    limb_phase[LimbEnum::LH_LEG].ready_to_swing = true;
-    limb_phase[LimbEnum::LH_LEG].real_contact = false;
+    limb_phase[LimbEnum::LH_LEG].swing_status = false;
+    limb_phase[LimbEnum::LH_LEG].stance_status = true;
+    limb_phase[LimbEnum::LH_LEG].ready_to_swing = false;
+    limb_phase[LimbEnum::LH_LEG].real_contact = true;
+
+ //just test for pace
+//    limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::LF_LEG].swing_status = true;
+//    limb_phase[LimbEnum::LF_LEG].stance_status = false;
+//    limb_phase[LimbEnum::LF_LEG].ready_to_swing = true;
+//    limb_phase[LimbEnum::LF_LEG].real_contact = false;
+
+//    limb_phase[LimbEnum::RF_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::RF_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::RF_LEG].swing_status = false;
+//    limb_phase[LimbEnum::RF_LEG].stance_status = true;
+//    limb_phase[LimbEnum::RF_LEG].ready_to_swing = false;
+//    limb_phase[LimbEnum::RF_LEG].real_contact = true;
+
+//    limb_phase[LimbEnum::RH_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::RH_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::RH_LEG].swing_status = false;
+//    limb_phase[LimbEnum::RH_LEG].stance_status = true;
+//    limb_phase[LimbEnum::RH_LEG].ready_to_swing = false;
+//    limb_phase[LimbEnum::RH_LEG].real_contact = true;
+
+//    limb_phase[LimbEnum::LH_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::LH_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::LH_LEG].swing_status = true;
+//    limb_phase[LimbEnum::LH_LEG].stance_status = false;
+//    limb_phase[LimbEnum::LH_LEG].ready_to_swing = true;
+//    limb_phase[LimbEnum::LH_LEG].real_contact = false;
+
+//just test for bound
+//    limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::LF_LEG].swing_status = true;
+//    limb_phase[LimbEnum::LF_LEG].stance_status = false;
+//    limb_phase[LimbEnum::LF_LEG].ready_to_swing = true;
+//    limb_phase[LimbEnum::LF_LEG].real_contact = false;
+
+//    limb_phase[LimbEnum::RF_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::RF_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::RF_LEG].swing_status = true;
+//    limb_phase[LimbEnum::RF_LEG].stance_status = false;
+//    limb_phase[LimbEnum::RF_LEG].ready_to_swing = true;
+//    limb_phase[LimbEnum::RF_LEG].real_contact = false;
+
+//    limb_phase[LimbEnum::RH_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::RH_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::RH_LEG].swing_status = false;
+//    limb_phase[LimbEnum::RH_LEG].stance_status = true;
+//    limb_phase[LimbEnum::RH_LEG].ready_to_swing = false;
+//    limb_phase[LimbEnum::RH_LEG].real_contact = true;
+
+//    limb_phase[LimbEnum::LH_LEG].swing_phase = 0;
+//    limb_phase[LimbEnum::LH_LEG].stance_phase = 0;
+//    limb_phase[LimbEnum::LH_LEG].swing_status = false;
+//    limb_phase[LimbEnum::LH_LEG].stance_status = true;
+//    limb_phase[LimbEnum::LH_LEG].ready_to_swing = false;
+//    limb_phase[LimbEnum::LH_LEG].real_contact = true;
     base_auto_flag = false;
     base_target_flag = false;
     pace_flag =false;
@@ -638,9 +667,9 @@ using namespace free_gait;
                 Position displace_of_angular = Position(desired_angular_velocity_.cross(robot_state_.getPositionBaseToHipInBaseFrame(limb)));
 
                 if(limb == free_gait::LimbEnum::LF_LEG || limb == free_gait::LimbEnum::RF_LEG)
-                  crawl_support_margin = 0.05;
+                  crawl_support_margin = 0.07;
                 else
-                  crawl_support_margin = 0.15;
+                  crawl_support_margin = 0.07;//0.15
 //                Pose start_pose;
                 if(limb == free_gait::LimbEnum::LF_LEG)
                   {
@@ -1076,7 +1105,9 @@ using namespace free_gait;
       base_target_msg_.average_linear_velocity = desired_linear_velocity_.norm();
       base_target_msg_.average_angular_velocity = desired_angular_velocity_.norm();
       base_target_msg_.target.header.frame_id = "odom";
+      //std::cout<<"before base_target_change P_com is :"<<P_CoM_desired_<<std::endl;
       kindr_ros::convertToRosGeometryMsg(P_CoM_desired_, base_target_msg_.target.pose.position);
+     // std::cout<<"after base_target_change P_com is :"<<P_CoM_desired_<<std::endl;
 //      kindr_ros::convertToRosGeometryMsg(robot_state_.getOrientationBaseToWorld(), base_target_msg_.target.pose.orientation);
       double yaw_angle;
       EulerAnglesZyx ypr(robot_state_.getOrientationBaseToWorld());
@@ -1247,8 +1278,8 @@ using namespace free_gait;
             free_gait_msgs::Step preStep;
             free_gait_msgs::BaseAuto baseMotion;
             baseMotion.height = height_;
-            baseMotion.average_linear_velocity = 0.05;//2*desired_linear_velocity.norm();
-            baseMotion.average_angular_velocity = 0.08;//5*desired_angular_velocity.norm();
+            baseMotion.average_linear_velocity = 0.10;//2*desired_linear_velocity.norm();  0.02
+            baseMotion.average_angular_velocity = 0.10;//5*desired_angular_velocity.norm(); 0.05
             baseMotion.ignore_timing_of_leg_motion = true;
             baseMotion.support_margin = crawl_support_margin;
 
@@ -1351,8 +1382,8 @@ using namespace free_gait;
 
             if(limb_phase.at(limb).swing_status){
               limb_phase.at(limb).swing_phase = limb_phase.at(limb).swing_phase + dt;
-              ROS_INFO("Leg %s is in swing phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
-                       limb_phase.at(limb).swing_phase, t_swing_);
+//              ROS_INFO("Leg %s is in swing phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
+//                       limb_phase.at(limb).swing_phase, t_swing_);
               if(limb_phase.at(limb).swing_phase>t_swing_ && is_contact)
                 {
                   //! WSHY: normal contacted
@@ -1380,8 +1411,8 @@ using namespace free_gait;
                 }*/
               } else if (limb_phase.at(limb).stance_status) {
                 limb_phase.at(limb).stance_phase = limb_phase.at(limb).stance_phase + dt;
-                ROS_INFO("Leg %s is in stance phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
-                         limb_phase.at(limb).stance_phase, t_stance_);
+//                ROS_INFO("Leg %s is in stance phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
+//                         limb_phase.at(limb).stance_phase, t_stance_);
                 if(limb_phase.at(limb).stance_phase>t_stance_ && is_contact)
                   {
                     if(pace_flag && limb_phase.at(limb).stance_phase<(t_stance_+t_swing_delay))

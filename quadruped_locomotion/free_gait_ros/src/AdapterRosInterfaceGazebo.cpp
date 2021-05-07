@@ -67,7 +67,7 @@ bool AdapterRosInterfaceGazebo::updateAdapterWithRobotState(AdapterBase& adapter
 * subscribe to sim_assiants/FootContacts msg, and update the support foot, surface normal
 * in the State.
 ****************/
-//  ROS_INFO("update robot state to free_gait once");
+  //ROS_INFO("update robot state to free_gait once");
     // TODO(Shunyao): How to  update state?
     State state_last = adapter.getState();
     Pose pose_base_to_world(Position(base_pose_in_world_.pose.pose.position.x,
@@ -91,9 +91,9 @@ bool AdapterRosInterfaceGazebo::updateAdapterWithRobotState(AdapterBase& adapter
 ****************/
     state_last.setCurrentLimbJoints(all_joint_positions_);
     state_last.setCurrentLimbJointVelocities(all_joint_velocities_);
-//    std::cout<<"AdapterRosInterfaceGazebo updatejoint position: "<<all_joint_positions_<<std::endl;
+    //std::cout<<"AdapterRosInterfaceGazebo updatejoint position: "<<all_joint_positions_<<std::endl;
     Stance footholds_in_support;
-//    ROS_ERROR("Get Here");
+    //ROS_ERROR("Get Here");
     for(auto leg_mode : leg_modes_)
       {
         LimbEnum limb = adapter.getLimbEnumFromLimbString(leg_mode.name);
@@ -120,7 +120,7 @@ bool AdapterRosInterfaceGazebo::updateAdapterWithRobotState(AdapterBase& adapter
           }
 
       }
-//    ROS_ERROR("Get Here");
+    //ROS_ERROR("Get Here");
     state_last.setSupportFootStance(footholds_in_support);
 //    std::cout<<state_last<<std::endl;
 //    std::cout<<"AdapterRosInterfaceGazebo update base position : "<<pose_base_to_world.getPosition()<<std::endl;
