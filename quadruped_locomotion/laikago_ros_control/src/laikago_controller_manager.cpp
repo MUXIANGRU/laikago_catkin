@@ -56,7 +56,7 @@ public:
     void update(const ros::TimerEvent&)
     {
         ros::Time time = ros::Time::now();
-        ros::Duration period(0.0020);
+        ros::Duration period(0.0025);
 
         LCM_HW_->read(time, period);
         controller_manager_->update(time, period);

@@ -1,6 +1,6 @@
 simpledog_joint_publisher:
   type: "joint_state_controller/JointStateController"
-  publish_rate: 300
+  publish_rate: 1000
 FL_hip_controller:
   type: laikago_controller/LaikagoJointController
   joint: LF_HAA

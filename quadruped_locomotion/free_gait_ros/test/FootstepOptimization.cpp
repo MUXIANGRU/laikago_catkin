@@ -63,28 +63,57 @@ bool FootstepOptimization::getOptimizedFoothold(free_gait::Position& nominal_foo
 
 //  Position nominal_foothold_in_map = robot_state_.getOrientationBaseToWorld().inverseRotate(nominal_foothold - robot_state.getPositionWorldToBaseInWorldFrame());
   Eigen::Vector2d center(nominal_foothold_in_map(0), nominal_foothold_in_map(1));
+  double nominal_height = nominal_foothold_in_map(2);
 //    return true;
-  double radius = 0.08;
-  int i = 0;
+  double radius = 0.10;
+  int i = 0,j=0;
+  //只要满足通过性地图条件,就不在选择新的落脚点
+  //和地图分辨率并没有关系,地图分辨率只会在名义不满足的情况下增加解的域
     for(grid_map::CircleIterator iterator(traversability_map_, center, radius); !iterator.isPastEnd(); ++iterator)
     {
+        std::cout<<++j<<std::endl;
+        grid_map::Index index;
+        traversability_map_.getIndex(center,index);
+        //Position position(nominal_foothold_in_map(0), nominal_foothold_in_map(1));
       if(traversability_map_.at("traversability", *iterator) > 0.75)
         {
+          ROS_WARN("traversability_map_ SATISFIEED!!!!!!!");
           if(checkKinematicsConstriants(limb, *iterator))
             {
-              Position optimazed_foothold_in_map;
-              traversability_map_.getPosition3("elevation_inpainted", *iterator, optimazed_foothold_in_map.vector());
-//              ROS_INFO("Find a foothold");
+            //ROS_WARN("checkKinematicsConstriants SATISFIEED!!!!!!!");
+            if(nominal_height==traversability_map_.at("elevation", *iterator)){
+                ROS_WARN("coming in this branch...........");
+                Position optimazed_foothold_in_map;
+                traversability_map_.getPosition3("elevation_inpainted", *iterator, optimazed_foothold_in_map.vector());
+  //              ROS_INFO("Find a foothold");
 
-              if(i>0)
-                {
-                  nominal_foothold = optimazed_foothold_in_map;
-                  ROS_INFO("Find a new foothold");
-                }else{
-                  ROS_INFO("Keep the foothold");
-                  return false;
-                }
-              return true;
+                if(i>0)
+                  {
+                    nominal_foothold = optimazed_foothold_in_map;
+                    ROS_INFO("Find a new foothold");
+                  }else{
+                    ROS_INFO("Keep the foothold");
+                    return false;
+                  }
+                return true;
+            }else{
+                ROS_WARN("coming in other branch...........");
+                Position optimazed_foothold_in_map;
+                traversability_map_.getPosition3("elevation_inpainted", *iterator, optimazed_foothold_in_map.vector());
+  //              ROS_INFO("Find a foothold");
+
+                if(i>0)
+                  {
+                    nominal_foothold = optimazed_foothold_in_map;
+                    ROS_INFO("Find a new foothold");
+                  }else{
+                    ROS_INFO("adapt the foothold to a true height");
+                    nominal_foothold.z()  = traversability_map_.at("elevation", index);
+                    return false;
+                  }
+                return true;
+            }
+
             }
         }
       i++;
@@ -127,7 +156,7 @@ bool FootstepOptimization::checkKinematicsConstriants(const free_gait::LimbEnum&
                                                       const grid_map::Index& index)
 {
 
-  double leg_lenth = 0.7;
+  double leg_lenth = 0.5;
   Position hip_in_base = robot_state_.getPositionBaseToHipInBaseFrame(limb);
   Position foothold_in_map, hip_in_map;//, hip_in_world;
 //  Position center_of_map;

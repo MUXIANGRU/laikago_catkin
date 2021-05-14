@@ -53,7 +53,7 @@ bool PoseOptimizationQP::optimize(Pose& pose)
   const Position centerOfMassInBaseFrame(
       adapter_.transformPosition(adapter_.getWorldFrameId(), adapter_.getBaseFrameId(),
                                  adapter_.getCenterOfMassInWorldFrame()));
-  std::cout<<"COM is :"<<centerOfMassInBaseFrame<<std::endl;
+  //std::cout<<"COM is :"<<centerOfMassInBaseFrame<<std::endl;
 
   // Problem definition:
   // min Ax - b, Gx <= h, x is base center (x,y,z),minimaze foothold offsets(I_r_F_hat - I_r_F)
@@ -61,7 +61,7 @@ bool PoseOptimizationQP::optimize(Pose& pose)
   MatrixXd A = MatrixXd::Zero(nDimensions_ * nFeet, nStates_);
   VectorXd b = VectorXd::Zero(nDimensions_ * nFeet);
   Matrix3d R = RotationMatrix(pose.getRotation()).matrix();
-  std::cout<<"QP optimization stance :"<<stance_<<std::endl;
+  //std::cout<<"QP optimization stance :"<<stance_<<std::endl;
   unsigned int i = 0;
   for (const auto& footPosition : stance_) {
     A.block(nDimensions_ * i, 0, nStates_, A.cols()) << Matrix3d::Identity();
@@ -138,9 +138,9 @@ bool PoseOptimizationQP::optimize(Pose& pose)
   params = pose.getPosition().vector();
   if (!solver_->minimize(*costFunction, *constraints, params)) return false;
   // Return optimized pose.
-  std::cout << "quadratic solution is : " << std::endl << params << std::endl;
+  //std::cout << "quadratic solution is : " << std::endl << params << std::endl;
   pose.getPosition().vector() = params;
-  std::cout<<"Check constraints :"<<"Gx<=h"<<std::endl<<G*params<<" ? "<<h<<std::endl;
+  //std::cout<<"Check constraints :"<<"Gx<=h"<<std::endl<<G*params<<" ? "<<h<<std::endl;
   return true;
 }
 

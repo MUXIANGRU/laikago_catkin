@@ -1604,13 +1604,13 @@ namespace balance_controller{
 //            std::cout<<robot_state_handle.contact_pressure_[i]<<"  "<<initial_pressure[i]<<std::endl;
             if((robot_state_handle.contact_pressure_[i]) > 25.0)
               {
-                ROS_INFO("contact!!!!!!!!!!!!!!");
-                std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
+                //ROS_INFO("contact!!!!!!!!!!!!!!");
+                //std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
 //                robot_state_handle.foot_contact_[i] = 1;
                 real_contact_.at(limb) = true;
               }else {
-                ROS_INFO("miss contact!!!!!!!!!!!!!!");
-                std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
+                //ROS_INFO("miss contact!!!!!!!!!!!!!!");
+                //std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
 //                robot_state_handle.foot_contact_[i] = 0;
                 real_contact_.at(limb) = false;
               }

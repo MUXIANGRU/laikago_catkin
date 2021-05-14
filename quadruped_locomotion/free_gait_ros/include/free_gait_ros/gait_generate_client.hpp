@@ -16,6 +16,9 @@
 #include "free_gait_msgs/Footstep.h"
 #include "pluginlib/class_loader.h"
 #include "kindr_ros/kindr_ros.hpp"
+#include "foothold_planner_msgs/GlobalFootholds.h"
+#include "std_srvs/SetBool.h"
+#include "foothold_planner/GlobalFootholdPlan.h"
 
 #include "free_gait_ros/FootstepOptimization.hpp"
 #include "free_gait_ros/RosVisualization.hpp"
@@ -24,6 +27,7 @@
 #include "std_msgs/Float64MultiArray.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Path.h"
+#include "cstring"
 
 class GaitGenerateClient
 {
@@ -78,6 +82,8 @@ public:
   bool sendMotionGoal();
 
   void velocityCommandCallback(const geometry_msgs::TwistConstPtr& twist);
+  void gazeboCallback(const std_msgs::Float64MultiArray::ConstPtr& contact_msg);
+  void footholdCallback(const foothold_planner_msgs::GlobalFootholds::ConstPtr& foothold_msg);
 
   std::string getLimbStringFromLimbEnum(const free_gait::LimbEnum& limb) const;
 
@@ -99,13 +105,14 @@ public:
 
 private:
   ros::NodeHandle nodeHandle_;
-  ros::Subscriber velocity_command_sub_;
+  ros::Subscriber velocity_command_sub_,gazebo_contactsub_,single_step_planningsub_;
   ros::ServiceServer gaitSwitchServer_, stepParameterServer_;
-  ros::Publisher foot_marker_pub_, com_proj_marker_pub_, desired_base_com_marker_pub_, support_polygon_pub_, weight_pub_, desired_com_path_pub_;
+  ros::Publisher foot_optimized_marker_pub_,foot_marker_pub_, com_proj_marker_pub_, desired_base_com_marker_pub_, support_polygon_pub_, weight_pub_, desired_com_path_pub_;
+  ros::ServiceClient triggerPlanningClient;
 
   free_gait::State robot_state_;
   Pose base_pose;
-  bool is_updated, is_done, is_active, use_terrian_map;
+  bool is_updated, is_done, is_active, use_terrian_map,use_single_step_planning;
   std::unique_ptr<free_gait::FreeGaitActionClient> action_client_ptr;
   double height_, t_swing_delay, step_displacement, profile_height, t_swing_, t_stance_, sigma_sw_0, sigma_sw_1, sigma_st_0, sigma_st_1;
   std::string profile_type;
@@ -153,6 +160,11 @@ private:
   Pose optimized_base_pose;
 
   double crawl_support_margin;
+
+  std_msgs::Float64MultiArray foot_contact;
+  bool all_is_contact_gazebo;
+  foothold_planner_msgs::GlobalFootholds single_step_foothold;
+  //foothold_planner::GlobalFootholdPlan default_plan;
 //  std::vector<LinearVelocity> current_velocity_buffer_;
 
 

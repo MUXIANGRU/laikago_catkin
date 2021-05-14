@@ -117,8 +117,9 @@
         </collision>
     </link>
 
-    <xacro:include filename="$(find simpledog)/urdf/front_kinect.urdf.xacro"/>
-    <xacro:include filename="$(find simpledog)/urdf/right_kinect.urdf.xacro"/>
+   <xacro:include filename="$(find simpledog)/urdf/front_kinect.urdf.xacro"/>
+   <xacro:include filename="$(find simpledog)/urdf/front_high_kinect.urdf.xacro"/>
+   <xacro:include filename="$(find simpledog)/urdf/right_kinect.urdf.xacro"/> 
 
     <!--load kinect urdf-->
      
@@ -127,12 +128,20 @@
         <origin xyz="0.28 0 0.0" rpy="0 0.8 0" />
         <parent link="base"/>
         <child link="front_camera_link"/>
-      </joint>
+      </joint> 
     
+    <!--load kinect urdf-->
+     
+      <xacro:front_high_kinect_camera prefix="front_high_camera" robot_namespace="$(arg robot_namespace)"/>
+      <joint name="front_high_kinect_frame_joint" type="fixed">
+        <origin xyz="0.28 0 0.1" rpy="0 0.1 0" />
+        <parent link="base"/>
+        <child link="front_high_camera_link"/> 
+      </joint> 
 
     <!--load kinect urdf-->
     
-      <xacro:right_kinect_camera prefix="right_camera" robot_namespace="$(arg robot_namespace)"/>
+     <xacro:right_kinect_camera prefix="right_camera" robot_namespace="$(arg robot_namespace)"/>
       <joint name="right_kinect_frame_joint" type="fixed">
         <origin xyz="-0.0 -0.07 0.0" rpy="0 0.8 -1.57" />
         <parent link="base"/>

@@ -54,13 +54,29 @@ using namespace free_gait;
       {
         ROS_ERROR("Can't get parameter '/profile_type', nodehandle namespace is %s", nodeHandle_.getNamespace().c_str());
       }
+    if(!nodeHandle_.getParam("/use_single_step_planning", use_single_step_planning))
+      {
+        ROS_ERROR("Can't get parameter '/use_single_step_planning', nodehandle namespace is %s", nodeHandle_.getNamespace().c_str());
+      }
 
 
     initialize();
     footstepOptimization.reset(new FootstepOptimization(nodeHandle_));
 
+    //MXR::NOTE: test for single step planning
+    foot_contact.data.resize(4);
+    single_step_foothold.footholds.resize(4);
+    gazebo_contactsub_ = nodeHandle_.subscribe("/gazebo/foot_contact_state",1,&GaitGenerateClient::gazeboCallback, this);
+    single_step_planningsub_ = nodeHandle_.subscribe("/foothold_planner/global_footholds",1,&GaitGenerateClient::footholdCallback, this);
+    triggerPlanningClient = nodeHandle_.serviceClient<foothold_planner::GlobalFootholdPlan>("/foothold_planner/plan_global_footholds");
+
+
+
+
+
     velocity_command_sub_ = nodeHandle_.subscribe("/cmd_vel", 1, &GaitGenerateClient::velocityCommandCallback, this);
     foot_marker_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("desired_footholds", 1);
+    foot_optimized_marker_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("show_optimized_footholds", 1);
     com_proj_marker_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("base_center_projection", 1);
     desired_base_com_marker_pub_ = nodeHandle_.advertise<visualization_msgs::Marker>("desired_base_center", 1);
     support_polygon_pub_ = nodeHandle_.advertise<geometry_msgs::PolygonStamped>("/support_region", 1);
@@ -463,6 +479,28 @@ using namespace free_gait;
     desired_angular_velocity_(1) = twist->angular.y;
     desired_angular_velocity_(2) = twist->angular.z;
   }
+  void GaitGenerateClient::gazeboCallback(const std_msgs::Float64MultiArray::ConstPtr &contact_msg){
+     foot_contact.data[0]=contact_msg->data[0];
+     foot_contact.data[1]=contact_msg->data[1];
+     foot_contact.data[2]=contact_msg->data[2];
+     foot_contact.data[3]=contact_msg->data[3];
+     if(foot_contact.data[0]==1.0&&foot_contact.data[1]==1.0&&foot_contact.data[2]==1.0&&foot_contact.data[3]==1.0){
+         all_is_contact_gazebo = true;
+//         std::cout<<"all is contact!!!!!!!!!!!"<<std::endl;
+//         std::cout<<"all is contact!!!!!!!!!!!"<<std::endl;
+//         std::cout<<"all is contact!!!!!!!!!!!"<<std::endl;
+
+     }else{
+         all_is_contact_gazebo = false;
+
+     }
+  }
+  void GaitGenerateClient::footholdCallback(const foothold_planner_msgs::GlobalFootholds::ConstPtr &foothold_msg){
+        single_step_foothold.footholds[0].point = foothold_msg->footholds[0].point;
+        single_step_foothold.footholds[1].point = foothold_msg->footholds[1].point;
+        single_step_foothold.footholds[2].point = foothold_msg->footholds[2].point;
+        single_step_foothold.footholds[3].point = foothold_msg->footholds[3].point;
+  }
 
   bool GaitGenerateClient::setStepParameterCallback(free_gait_msgs::SetStepParameterRequest& req,
                                                     free_gait_msgs::SetStepParameterResponse& res)
@@ -549,8 +587,9 @@ using namespace free_gait;
     current_velocity_buffer_.push_back(current_vel_in_base);
 
     Position displace_in_footprint;
-    Stance stance_to_reach;
+    Stance stance_to_reach,stance_to_optimize;
     visualization_msgs::MarkerArray foot_markers;
+    visualization_msgs::MarkerArray visualized_foot_markers;
     for(int i = 0;i<4;i++)
       {
         free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
@@ -763,6 +802,107 @@ using namespace free_gait;
             if(frame=="odom")
               {
 
+                std::cout<<"-------------------"<<std::endl;
+                std::cout<<limb<<std::endl;
+                std::cout<<all_is_contact_gazebo<<std::endl;
+                std::cout<<"-------------------"<<std::endl;
+                if(use_single_step_planning){
+                    if(all_is_contact_gazebo){
+                        foothold_planner::GlobalFootholdPlan trigger_it;
+                        trigger_it.request.gait_cycles = 1;
+                        triggerPlanningClient.call(trigger_it.request,trigger_it.response);
+                            ROS_WARN("Starting planning......");
+                        std::cout<<limb<<std::endl;
+                        if(i==0){//lf    左前腿第一次开始移动的时候第一步还没有规划好!!!
+                            if(single_step_foothold.footholds[3].point.x==0&&single_step_foothold.footholds[3].point.y==0
+                                    &&single_step_foothold.footholds[3].point.z==0){
+                                target_optimized.x()=target_in_odom.x()+0.20;
+                                target_optimized.y()=target_in_odom.y();
+                                target_optimized.z()=target_in_odom.z();
+
+                            }else{
+                                target_optimized.x() = single_step_foothold.footholds[3].point.x;
+                                target_optimized.y() = single_step_foothold.footholds[3].point.y;
+                                target_optimized.z() = single_step_foothold.footholds[3].point.z;
+                            }
+
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                        if(i==1){//rf
+                            target_optimized.x() = single_step_foothold.footholds[0].point.x;
+                            target_optimized.y() = single_step_foothold.footholds[0].point.y;
+                            target_optimized.z() = single_step_foothold.footholds[0].point.z;
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                        if(i==2){//rh
+                            target_optimized.x() = single_step_foothold.footholds[1].point.x;
+                            target_optimized.y() = single_step_foothold.footholds[1].point.y;
+                            target_optimized.z() = single_step_foothold.footholds[1].point.z;
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                        if(i==3){//lh
+                            target_optimized.x() = single_step_foothold.footholds[2].point.x;
+                            target_optimized.y() = single_step_foothold.footholds[2].point.y;
+                            target_optimized.z() = single_step_foothold.footholds[2].point.z;
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                    }else{  //有个bug,所以加了个if分支
+                        std::cout<<limb<<std::endl;
+                        if(i==0){//lf    左前腿第一次开始移动的时候第一步还没有规划好!!!
+                            if(single_step_foothold.footholds[3].point.x==0&&single_step_foothold.footholds[3].point.y==0
+                                    &&single_step_foothold.footholds[3].point.z==0){
+                                target_optimized.x()=target_in_odom.x()+0.20;
+                                target_optimized.y()=target_in_odom.y();
+                                target_optimized.z()=target_in_odom.z();
+
+                            }else{
+                                target_optimized.x() = single_step_foothold.footholds[3].point.x;
+                                target_optimized.y() = single_step_foothold.footholds[3].point.y;
+                                target_optimized.z() = single_step_foothold.footholds[3].point.z;
+                            }
+
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                        if(i==1){//rf
+                            target_optimized.x() = single_step_foothold.footholds[0].point.x;
+                            target_optimized.y() = single_step_foothold.footholds[0].point.y;
+                            target_optimized.z() = single_step_foothold.footholds[0].point.z;
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                        if(i==2){//rh
+                            target_optimized.x() = single_step_foothold.footholds[1].point.x;
+                            target_optimized.y() = single_step_foothold.footholds[1].point.y;
+                            target_optimized.z() = single_step_foothold.footholds[1].point.z;
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                        }
+                        if(i==3){//lh
+                            target_optimized.x() = single_step_foothold.footholds[2].point.x;
+                            target_optimized.y() = single_step_foothold.footholds[2].point.y;
+                            target_optimized.z() = single_step_foothold.footholds[2].point.z;
+                            std::cout<<"====================="<<std::endl;
+                            std::cout<<target_optimized<<std::endl;
+                            std::cout<<"====================="<<std::endl;
+                    }
+
+
+
+
+                }
+                }
                 if(use_terrian_map)
                   {
                     if(!footstepOptimization->getOptimizedFoothold(target_optimized,
@@ -796,16 +936,22 @@ using namespace free_gait;
                 ROS_WARN_STREAM("target before optimized :"<<target_in_odom<<std::endl
                                 <<"target after optimized :"<<target_optimized<<std::endl);
                 stance_to_reach[limb] = target_in_odom;
+                stance_to_optimize[limb] = target_optimized;
 
                 std::cout<<"#########################"<<std::endl;
                 std::cout<<"if(frame==odom)"<<std::endl;
                 std::cout<<"stance to reach: "<<stance_to_reach[limb]<<std::endl;
                 std::cout<<"#########################"<<std::endl;
 
-                std_msgs::ColorRGBA color;
+                std_msgs::ColorRGBA color,color_test;
                 color.a = 1;
                 color.g = 1;
+                color_test.a = 0.5;
+                color_test.g = 0.5;
+                color_test.r = 0.5;
                 foot_markers = free_gait::RosVisualization::getFootholdsMarker(stance_to_reach, frame, color, 0.08);
+                visualized_foot_markers = free_gait::RosVisualization::getFootholdsMarker(stance_to_optimize, frame, color_test, 0.08);
+
 
               }
             if(frame=="foot_print")
@@ -949,6 +1095,7 @@ using namespace free_gait;
 //      ROS_WARN_STREAM("Displacement of foothold : "<<displace_in_footprint<<std::endl);
       }
       foot_marker_pub_.publish(foot_markers);
+      foot_optimized_marker_pub_.publish(visualized_foot_markers);
 //    footprint_center_in_base = footholds_in_stance/robot_state_.getNumberOfSupportLegs();
 //    footprint_center_in_world = robot_state_.getPositionWorldToBaseInWorldFrame()
 //        + robot_state_.getOrientationBaseToWorld().rotate(footprint_center_in_base);
@@ -1278,8 +1425,8 @@ using namespace free_gait;
             free_gait_msgs::Step preStep;
             free_gait_msgs::BaseAuto baseMotion;
             baseMotion.height = height_;
-            baseMotion.average_linear_velocity = 0.10;//2*desired_linear_velocity.norm();  0.02
-            baseMotion.average_angular_velocity = 0.10;//5*desired_angular_velocity.norm(); 0.05
+            baseMotion.average_linear_velocity = 0.05;//2*desired_linear_velocity.norm();  0.02
+            baseMotion.average_angular_velocity = 0.05;//5*desired_angular_velocity.norm(); 0.05
             baseMotion.ignore_timing_of_leg_motion = true;
             baseMotion.support_margin = crawl_support_margin;
 

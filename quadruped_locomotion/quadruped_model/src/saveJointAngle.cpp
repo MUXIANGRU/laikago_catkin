@@ -38,7 +38,7 @@ void SaveAsFile(const std::vector<JointPositions>& joint_position_vector)
     std::ofstream invFile;
     std::cout << "Saving the data" << std::endl;
     std::string file_name;
-    file_name = "calculated_trot.txt";
+    file_name = "calculated_crawl.txt";
     invFile.open(file_name);
     if(invFile.fail())
     {

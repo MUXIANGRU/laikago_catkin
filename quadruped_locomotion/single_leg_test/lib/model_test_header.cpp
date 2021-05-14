@@ -513,6 +513,7 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
 //      VecTauAct = -VecTauAct;
     Tauacutal.row(0) = VecTauAct;
     TauFeedForward = VecTauAct;
+    std::cout<<"TauFeedForward    "<<TauFeedForward<<std::endl;
     Eigen::Vector3d position_error_in_base, velocity_error_in_base;
     position_error_in_base = robot_state_->getTargetFootPositionInBaseForLimb(limb).vector()
         - robot_state_->getPositionBaseToFootInBaseFrame(limb).vector();
@@ -525,10 +526,10 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
     velocity_error_in_base = robot_state_->getTargetFootVelocityInBaseForLimb(limb).vector()
         - robot_state_->getEndEffectorVelocityInBaseForLimb(limb).vector();
 //    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
-//    std::cout<<"Target:   "<<robot_state_->getTargetFootPositionInBaseForLimb(limb).vector()<<std::endl;
-//    std::cout<<"Real:     "<<robot_state_->getPositionBaseToFootInBaseFrame(limb).vector()<<std::endl;
+    std::cout<<"Target:   "<< robot_state_->getTargetFootVelocityInBaseForLimb(limb).vector()<<std::endl;
+    std::cout<<"Real:     "<< robot_state_->getEndEffectorVelocityInBaseForLimb(limb).vector()<<std::endl;
 //    std::cout<<"position_error_in_base  "<<position_error_in_base<<std::endl;
-//    std::cout<<"velocity_error_in_base  "<<velocity_error_in_base<<std::endl;
+    std::cout<<"velocity_error_in_base  "<<velocity_error_in_base<<std::endl;
 //    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
 //    ROS_WARN_STREAM("Inertial Matrix :" <<QuadrupedRobotModel.IA<<std::endl);
 //      kp_={300,300,300};
@@ -543,10 +544,10 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
       {
         for(int i=0;i<VecTauAct.size();i++)
           {
-            if(VecTauAct[i]>20.0)
-              VecTauAct[i] = 20.0;
-            if(VecTauAct[i]<-20.0)
-              VecTauAct[i] = -20.0;
+            if(VecTauAct[i]>25.0)
+              VecTauAct[i] = 25.0;
+            if(VecTauAct[i]<-25.0)
+              VecTauAct[i] = -25.0;
           }
       }
 

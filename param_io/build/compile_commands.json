@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/mxr/dep/any_node/param_io/build",
+  "command": "/usr/bin/c++   -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"param_io\\\" -I/home/mxr/dep/any_node/param_io/include -I/usr/local/include/eigen3 -I/opt/ros/kinetic/include -I/opt/ros/kinetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp    -o CMakeFiles/test_param_io_node.dir/test/main.cpp.o -c /home/mxr/dep/any_node/param_io/test/main.cpp",
+  "file": "/home/mxr/dep/any_node/param_io/test/main.cpp"
+},
+{
+  "directory": "/home/mxr/dep/any_node/param_io/build",
+  "command": "/usr/bin/c++   -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"param_io\\\" -I/home/mxr/dep/any_node/param_io/include -I/usr/local/include/eigen3 -I/opt/ros/kinetic/include -I/opt/ros/kinetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp    -o CMakeFiles/test_param_io_node.dir/test/GetParam.cpp.o -c /home/mxr/dep/any_node/param_io/test/GetParam.cpp",
+  "file": "/home/mxr/dep/any_node/param_io/test/GetParam.cpp"
+}
+]

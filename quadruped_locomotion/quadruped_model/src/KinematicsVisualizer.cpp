@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     joint_group_positions_.data.resize(12);
 
     std::ifstream readfile;
-    readfile.open("/home/mxr/catkin_laikago/calculated_trot.txt");
+    readfile.open("/home/mxr/catkin_laikago/calculated_crawl.txt");
     quadruped_model::JointPositions joint_position_file;
     std::vector<quadruped_model::JointPositions> joint_position_collection;
     double time;

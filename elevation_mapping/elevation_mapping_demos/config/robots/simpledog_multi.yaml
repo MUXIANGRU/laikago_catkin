@@ -18,6 +18,13 @@ input_sources:
       publish_on_update: false
       sensor_processor:
         type: structured_light
+#    front_high:
+#      type: pointcloud
+#      topic: /front_high_camera/depth/points
+#      queue_size: 1
+#      publish_on_update: false
+#      sensor_processor:
+#        type: structured_light
 track_point_frame_id:                       base
 track_point_x:                              0.0
 track_point_y:                              0.0

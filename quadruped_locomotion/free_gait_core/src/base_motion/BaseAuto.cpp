@@ -101,9 +101,9 @@ bool BaseAuto::prepareComputation(const State& state, const Step& step, const St
     std::cerr << "BaseAuto::compute: Could not generate foothold lists." << std::endl;
     return false;
   }
-  std::cout<<"footholds To Reach is "<<footholdsToReach_<<std::endl;
-  std::cout<<"footholds Stance is "<<footholdsInSupport_<<std::endl;
-  std::cout<<"footholds Nominal Stance is "<<nominalStanceInBaseFrame_<<std::endl;
+  //std::cout<<"footholds To Reach is "<<footholdsToReach_<<std::endl;
+  //std::cout<<"footholds Stance is "<<footholdsInSupport_<<std::endl;
+  //std::cout<<"footholds Nominal Stance is "<<nominalStanceInBaseFrame_<<std::endl;
 
   // Define support region.
   grid_map::Polygon supportRegion;
@@ -112,7 +112,7 @@ bool BaseAuto::prepareComputation(const State& state, const Step& step, const St
 
   for (auto foothold : footholdsOrdered) {
     supportRegion.addVertex(foothold.vector().head<2>());
-    std::cout<<"footholds ordered is "<<foothold.vector().head<2>()<<std::endl;
+    //std::cout<<"footholds ordered is "<<foothold.vector().head<2>()<<std::endl;
   }
   bool isLinePolygon = false;
   // if there are only 2 stance leg, treat as a line with 0.001m witdth

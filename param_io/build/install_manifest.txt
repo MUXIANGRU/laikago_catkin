@@ -1,0 +1,15 @@
+/usr/local/_setup_util.py
+/usr/local/env.sh
+/usr/local/setup.bash
+/usr/local/local_setup.bash
+/usr/local/setup.sh
+/usr/local/local_setup.sh
+/usr/local/setup.zsh
+/usr/local/local_setup.zsh
+/usr/local/.rosinstall
+/usr/local/lib/pkgconfig/param_io.pc
+/usr/local/share/param_io/cmake/param_ioConfig.cmake
+/usr/local/share/param_io/cmake/param_ioConfig-version.cmake
+/usr/local/share/param_io/package.xml
+/usr/local/include/param_io/set_param.hpp
+/usr/local/include/param_io/get_param.hpp

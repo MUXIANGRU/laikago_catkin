@@ -8,17 +8,17 @@ SequenceQuadraticProblemSolver::SequenceQuadraticProblemSolver(std::shared_ptr<q
     tolerance_(tolerance),
     max_iteration_(max_iteration)
 {
-  std::cout<<"construct a sequence quadratic program solver class"<<std::endl;
+  //std::cout<<"construct a sequence quadratic program solver class"<<std::endl;
 };
 SequenceQuadraticProblemSolver::~SequenceQuadraticProblemSolver()
 {
-  std::cout<<"destroy a sequence quadratic program solver class"<<std::endl;
+  //std::cout<<"destroy a sequence quadratic program solver class"<<std::endl;
 }
 
 bool SequenceQuadraticProblemSolver::minimize(const PoseOptimizationProblem& problem,
                                               PoseParameterization& params)
 {
-  std::cout<<"Sequence Quadratic minimizing......"<<std::endl;
+  //std::cout<<"Sequence Quadratic minimizing......"<<std::endl;
   int k = 0;
   Eigen::MatrixXd H, A;
   Eigen::VectorXd G, b, b_max,d;
@@ -100,10 +100,10 @@ bool SequenceQuadraticProblemSolver::minimize(const PoseOptimizationProblem& pro
     params.plus(result, result, dp);
     params.setPose(Pose(Position(result.head(3)), RotationQuaternion(result.tail(4))));
     problem.objectiveFunction_->computeValue(cost, params, true);
-    cout<<"dp norm at "<<k<<"iteration is : "<<dp.norm()<<endl;
+    //cout<<"dp norm at "<<k<<"iteration is : "<<dp.norm()<<endl;
     if(dp.norm() < 0.005)//tolerance_)
     {
-      cout<<"Final cost :"<<cost<<endl;
+      //cout<<"Final cost :"<<cost<<endl;
       break;
     }
 
@@ -129,7 +129,7 @@ bool SequenceQuadraticProblemSolver::minimize(const PoseOptimizationProblem& pro
 //    cout<<"Inequality Constraints value vector is: "<<endl<<b<<endl;
 
   }
-  cout<<"iterate times : "<<k<<endl;
+  //cout<<"iterate times : "<<k<<endl;
   iteration_times_ = k;
   return true;
 }
