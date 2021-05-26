@@ -20,7 +20,7 @@
   <param name="/step_height" value="0.05" />
   <param name="/profile_type" value="triangle" />
   <param name="/step_displacement" value="0.05" />
-  <param name="/use_single_step_planning" value="true" />
+  <param name="/use_single_step_planning" value="false" />
 
   <node pkg="free_gait_ros"
     type="action_server_test_node"

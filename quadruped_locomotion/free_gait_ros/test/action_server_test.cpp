@@ -149,6 +149,7 @@ public:
             executor->advance(dt, false);
             if(is_start_gait && !gait_generate_client_.ignore_vd){
                 // YG：根据不同的步态设置期望的状态，通过gait_generate_client_.updateBaseMotion（）获得
+                // MXR::NOTE: set the desired robot state
                 state->setLinearVelocityBaseInWorldFrame(desired_linear_velocity_);
                 state->setAngularVelocityBaseInBaseFrame(desired_angular_velocity_);
                 state->setPositionWorldToBaseInWorldFrame(gait_generate_client_.getDesiredBasePose().getPosition());

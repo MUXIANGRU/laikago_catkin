@@ -3,7 +3,7 @@ map_frame_id:                               odom
 robot_base_frame_id:                        base
 robot_pose_with_covariance_topic:           /pose_pub_node/base_pose
 robot_pose_cache_size:                      200
-point_cloud_topic:                          /front_camera/depth/points
+point_cloud_topic:                          /generated_pc
 track_point_frame_id:                       odom
 track_point_x:                              0.0
 track_point_y:                              0.0

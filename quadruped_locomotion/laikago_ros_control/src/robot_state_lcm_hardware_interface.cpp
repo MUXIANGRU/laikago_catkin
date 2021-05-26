@@ -241,7 +241,7 @@ bool RobotStateLcmHardwareInterface::init(ros::NodeHandle &root_nh, ros::NodeHan
                     joint_position_[j]=0.2;
                 }
                 if(j==9){
-                    joint_position_[j]=0.1;
+                    joint_position_[j]=0.2;
                 }
                 if(j==3||j==6){
                     joint_position_[j]=-0.2;
@@ -572,7 +572,7 @@ bool RobotStateLcmHardwareInterface::Init_flag(){
     if(joint_position_command_[0]==0.2&&joint_position_command_[1]==1.8&&joint_position_command_[2]==-2.7&&
             joint_position_command_[3]==-0.2&&joint_position_command_[4]==1.8&&joint_position_command_[5]==-2.7&&
             joint_position_command_[6]==-0.2&&joint_position_command_[7]==1.8&&joint_position_command_[8]==-2.7&&
-            joint_position_command_[9]==0.1&&joint_position_command_[10]==1.8&&joint_position_command_[11]==-2.7){
+            joint_position_command_[9]==0.2&&joint_position_command_[10]==1.8&&joint_position_command_[11]==-2.7){
         return true;
     }
 

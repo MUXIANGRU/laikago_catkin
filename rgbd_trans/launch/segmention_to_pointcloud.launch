@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+  <param name="/color_image_topic" value="/front_high_camera/image_raw" />
+  <param name="/depth_image_topic" value="/front_high_camera/depth/image_raw" />
+  <param name="/camera_frame" value="front_high_camera_frame_optical" />
+
+<!--get the contact information from bumper sensor -->
+  <node pkg="rgb_trans" type="rgb_trans_node" name="rgb_trans_node" />
+
+</launch>

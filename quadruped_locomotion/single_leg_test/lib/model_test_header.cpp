@@ -229,6 +229,7 @@ bool MyRobotSolver::loadLimbModelFromURDF()
     //ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
 //  string lf_leg_urdf_dir_str = ros::package::getPath("quadruped_model") + "/urdf/simpledog_lf_leg.urdf";
   string lf_leg_urdf_dir_str = ros::package::getPath("quadruped_model") + "/urdf/quadruped_model_lf_leg.urdf";
+  
   char* lf_leg_urdf_dir = (char*)lf_leg_urdf_dir_str.c_str();
   RigidBodyDynamics::Addons::URDFReadFromFile(lf_leg_urdf_dir, LimbRBDLModel.at(free_gait::LimbEnum::LF_LEG), false, false);
 //  std::cout<<" Gravity :"<<LimbRBDLModel.at(free_gait::LimbEnum::LF_LEG)->gravity<<std::endl;

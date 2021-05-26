@@ -244,6 +244,26 @@ bool ElevationMap::add(const PointCloudType::Ptr pointCloud, Eigen::VectorXf& po
     variance = (pointVariance * variance) / (pointVariance + variance);
     // TODO(max): Add color fusion.
     grid_map::colorVectorToValue(point.getRGBVector3i(), color);
+    if(point.getRGBVector3i().x()==0&&point.getRGBVector3i().y()==0&&point.getRGBVector3i().z()==0){
+        //ROS_WARN("BACKGROUND!!!!!!!");
+        color = 0.1;
+    }
+    if(point.getRGBVector3i().x()==128&&point.getRGBVector3i().y()==0&&point.getRGBVector3i().z()==0){
+        //ROS_WARN("LAND!!!!!!!");
+        color = 0.3;
+    }
+    if(point.getRGBVector3i().x()==0&&point.getRGBVector3i().y()==128&&point.getRGBVector3i().z()==0){
+        //ROS_WARN("ROAD!!!!!!!");
+        color = 0.5;
+    }
+    if(point.getRGBVector3i().x()==128&&point.getRGBVector3i().y()==128&&point.getRGBVector3i().z()==0){
+        //ROS_WARN("GRASS!!!!!!!");
+        color = 0.7;
+    }
+    if(point.getRGBVector3i().x()==0&&point.getRGBVector3i().y()==0&&point.getRGBVector3i().z()==128){
+        //ROS_WARN("STONE!!!!!!!");
+        color = 0.9;
+    }
     time = scanTimeSinceInitialization;
 
 
