@@ -73,7 +73,7 @@
     <!-- Foot contacts. -->
     <gazebo reference="RF_SHANK">
         <sensor name="RF_foot_contact" type="contact">
-        <update_rate>100</update_rate>
+        <update_rate>1000</update_rate>
                 <plugin name="RF_FOOT_gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
                   <alwaysOn>true</alwaysOn>
                   <frameName>RF_FOOT</frameName>
@@ -88,7 +88,7 @@
     </gazebo>
     <gazebo reference="LF_SHANK">
         <sensor name="LF_foot_contact" type="contact">
-        <update_rate>100</update_rate>
+        <update_rate>1000</update_rate>
                 <plugin name="LF_FOOT_gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
                   <alwaysOn>true</alwaysOn>
                   <frameName>LF_FOOT</frameName>
@@ -103,7 +103,7 @@
     </gazebo>
     <gazebo reference="RH_SHANK">
         <sensor name="RH_foot_contact" type="contact">
-        <update_rate>100</update_rate>
+        <update_rate>1000</update_rate>
                 <plugin name="RH_FOOT_gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
                   <alwaysOn>true</alwaysOn>
                   <frameName>RH_FOOT</frameName>
@@ -118,7 +118,7 @@
     </gazebo>
     <gazebo reference="LH_SHANK">
         <sensor name="LH_foot_contact" type="contact">
-        <update_rate>100</update_rate>
+        <update_rate>1000</update_rate>
                 <plugin name="LH_FOOT_gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
                   <alwaysOn>true</alwaysOn>
                   <frameName>LH_FOOT</frameName>

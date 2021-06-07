@@ -4,7 +4,7 @@
   <arg name="kinect_enabled" default="true"/>
   <arg name="robot_namespace" default="/"/>
 
-<include file="$(find xsens_driver)/launch/xsens_driver.launch">
+  <include file="$(find xsens_driver)/launch/xsens_driver.launch">
   </include>
   <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find simpledog)/urdf/quadruped_model.urdf.xacro'
   inorder

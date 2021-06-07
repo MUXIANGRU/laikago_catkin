@@ -130,7 +130,7 @@
         <child link="front_camera_link"/>
       </joint> 
     
-    <!--load kinect urdf-->
+    <!--load kinect urdf--> 
      
       <xacro:front_high_kinect_camera prefix="front_high_camera" robot_namespace="$(arg robot_namespace)"/>
       <joint name="front_high_kinect_frame_joint" type="fixed">
@@ -146,7 +146,7 @@
         <origin xyz="-0.0 -0.07 0.0" rpy="0 0.8 -1.57" />
         <parent link="base"/>
         <child link="right_camera_link"/>
-      </joint>
+      </joint> 
     
 
 

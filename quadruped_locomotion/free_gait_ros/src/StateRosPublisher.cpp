@@ -103,6 +103,7 @@ bool StateRosPublisher::initializeRobotStatePublisher()
 
 bool StateRosPublisher::publish(const State& state)
 {
+  ROS_ERROR("bool StateRosPublisher::publish(const State& state)!!!!!!!!");
   const ros::Time time = ros::Time::now();
 
   // Publish joint states.
@@ -147,12 +148,23 @@ bool StateRosPublisher::publish(const State& state)
     tfBroadcaster_.sendTransform(tfTransform);
   }
   //! WSHY: set to publish robot state to the balance controller
-//  ROS_INFO("=============================In ros state publisher : \n");
+  ROS_INFO("=============================In ros state publisher : \n");
+  std::cout<<state.getTargetPositionWorldToBaseInWorldFrame()<<std::endl;
+  std::cout<<"======================================="<<std::endl;
 //  std::cout<<state<<std::endl;
   kindr_ros::convertToRosGeometryMsg(Pose(Position(state.getTargetPositionWorldToBaseInWorldFrame()),
                                           RotationQuaternion(state.getTargetOrientationBaseToWorld())),
                                      robot_state_.base_pose.pose.pose);
-  std::cout<<state.getTargetOrientationBaseToWorld()<<std::endl;
+
+  //MXR::NOTE: For controller switch
+//  robot_state_.base_pose.pose.pose.position.x = 0.0;
+//  robot_state_.base_pose.pose.pose.position.y = 0.0;
+//  robot_state_.base_pose.pose.pose.position.z = 0.37;
+//  robot_state_.base_pose.pose.pose.orientation.w = 1.0;
+//  robot_state_.base_pose.pose.pose.orientation.x = 0.0;
+//  robot_state_.base_pose.pose.pose.orientation.y = 0.0;
+//  robot_state_.base_pose.pose.pose.orientation.z = 0.0;
+  //std::cout<<state.getTargetOrientationBaseToWorld()<<std::endl;
   kindr_ros::convertToRosGeometryMsg(Twist(LinearVelocity(state.getTargetLinearVelocityBaseInWorldFrame()),
                                            LocalAngularVelocity(state.getTargetAngularVelocityBaseInBaseFrame())),
                                      robot_state_.base_pose.twist.twist);
@@ -239,6 +251,8 @@ bool StateRosPublisher::publish(const State& state)
 
 bool StateRosPublisher::publish(const State& state, const StepQueue& step_queue)
 {
+    //MXR::NOTE:  走步态的时候触发!!!
+  //ROS_ERROR("bool StateRosPublisher::publish(const State& state, const StepQueue& step_queue)!!!!!!!!");
   const ros::Time time = ros::Time::now();
 
   // Publish joint states.
@@ -599,13 +613,15 @@ bool StateRosPublisher::publish(const State& state, const StepQueue& step_queue)
 
 bool StateRosPublisher::publish()
 {
+  //ROS_ERROR("bool StateRosPublisher::publish()!!!!!!!!!!!!");
   robot_state_pub_.publish(robot_state_);
   return true;
 }
 
 bool StateRosPublisher::publish(const Pose& base_pose)
 {
-
+     //MXR::NOTE:  走步态的时候触发!!!
+  //ROS_ERROR("bool StateRosPublisher::publish(const Pose& base_pose)!!!!");
   kindr_ros::convertToRosGeometryMsg(base_pose,
                                      robot_state_.base_pose.pose.pose);
   robot_state_pub_.publish(robot_state_);

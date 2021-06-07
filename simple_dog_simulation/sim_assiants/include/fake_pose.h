@@ -13,6 +13,8 @@
 #include "eigen3/Eigen/Geometry"
 #include "eigen3/Eigen/Core"
 #include "nav_msgs/Odometry.h"
+#include "sensor_msgs/Imu.h"
+#include "geometry_msgs/TwistWithCovarianceStamped.h"
 
 namespace fake_pose {
 
@@ -40,6 +42,10 @@ public:
     void jointStatesCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
 
     void footContactsCallback(const sim_assiants::FootContacts::ConstPtr& foot_contacts);
+
+    void prontoIMUCB(const sensor_msgs::Imu::ConstPtr& msg);
+    void prontoPositionCB(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg);
+    void prontoTwistCB(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& msg);
 private:
     //! subscribe loop thread
     void modelStatesSubLoopThread();
@@ -49,6 +55,10 @@ private:
 
     //! ROS subscriber
     ros::Subscriber modelStatesSub_, gazebo_joint_states_sub_, footContactsSub_;
+    ros::Subscriber prontoPositionSub_,prontoImuSub_,prontoTwistSub_;
+
+    geometry_msgs::PoseWithCovarianceStamped prontoMsg_;
+    geometry_msgs::TwistWithCovarianceStamped prontoTwist_;
 
     //! message filter subscriber
     //message_filters::Subscriber<gazebo_msgs::ModelStates> timeSeqSub_;
@@ -73,6 +83,7 @@ private:
     tf::Quaternion q;
     ros::Time gazebo_time;
     double real_time_factor;
+    bool use_fake_pose;
 
 };
 

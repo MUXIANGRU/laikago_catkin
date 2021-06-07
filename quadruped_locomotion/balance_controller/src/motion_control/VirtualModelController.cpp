@@ -399,7 +399,9 @@ LinearVelocity VirtualModelController::getLinearVelError() const {
 Position VirtualModelController::getPosError() const {
     return positionErrorInControlFrame_;
 }
-
+Eigen::Vector3d VirtualModelController::getOriError() const{
+    return orientationError_;
+}
 Force VirtualModelController::getDesiredVirtualForceInBaseFrame() const {
   return virtualForceInBaseFrame_;
 }

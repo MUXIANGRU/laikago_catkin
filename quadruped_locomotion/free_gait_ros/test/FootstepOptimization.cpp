@@ -22,7 +22,7 @@ FootstepOptimization::~FootstepOptimization()
 
 void FootstepOptimization::initialize()
 {
-  traversability_map_sub_ = node_handle_.subscribe("/grid_map_filter_demo/filtered_map", 1,
+  traversability_map_sub_ = node_handle_.subscribe("/traversability_estimation/traversability_map", 1,
                                                    &FootstepOptimization::traversabilityMapCallback, this);
 }
 
@@ -65,7 +65,7 @@ bool FootstepOptimization::getOptimizedFoothold(free_gait::Position& nominal_foo
   Eigen::Vector2d center(nominal_foothold_in_map(0), nominal_foothold_in_map(1));
   double nominal_height = nominal_foothold_in_map(2);
 //    return true;
-  double radius = 0.10;
+  double radius = 0.08;
   int i = 0,j=0;
   //只要满足通过性地图条件,就不在选择新的落脚点
   //和地图分辨率并没有关系,地图分辨率只会在名义不满足的情况下增加解的域
@@ -75,7 +75,7 @@ bool FootstepOptimization::getOptimizedFoothold(free_gait::Position& nominal_foo
         grid_map::Index index;
         traversability_map_.getIndex(center,index);
         //Position position(nominal_foothold_in_map(0), nominal_foothold_in_map(1));
-      if(traversability_map_.at("traversability", *iterator) > 0.75)
+      if(traversability_map_.at("traversability", *iterator) > 0.85)
         {
           ROS_WARN("traversability_map_ SATISFIEED!!!!!!!");
           if(checkKinematicsConstriants(limb, *iterator))

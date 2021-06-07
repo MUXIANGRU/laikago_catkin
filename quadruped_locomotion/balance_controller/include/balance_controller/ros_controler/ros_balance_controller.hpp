@@ -137,6 +137,11 @@ namespace balance_controller {
     void baseCommandCallback(const free_gait_msgs::RobotStateConstPtr& robot_state_msg);
     void footContactsCallback(const sim_assiants::FootContactsConstPtr& foot_contacts);
 
+    void lf_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
+    void rf_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
+    void rh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
+    void lh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
+
     void enforceJointLimits(double &command, unsigned int index);
     double computeTorqueFromPositionCommand(double command, int i, const ros::Duration& period);
 
@@ -180,6 +185,13 @@ namespace balance_controller {
 
     double initial_pressure[4];
     double contact_pressure_bias;
+
+
+    //FOR Slip detection
+    ros::Publisher footVelPub_;
+    std_msgs::Float64MultiArray foot_vel;
+    ros::Subscriber lf_contact_forceSub_,rf_contact_forceSub_,lh_contact_forceSub_,rh_contact_forceSub_;
+    geometry_msgs::WrenchStamped lf_contact_force,rf_contact_force,lh_contact_force,rh_contact_force;
 
   };
 

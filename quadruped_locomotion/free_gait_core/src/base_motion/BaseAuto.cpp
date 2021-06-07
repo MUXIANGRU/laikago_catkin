@@ -163,6 +163,9 @@ bool BaseAuto::prepareComputation(const State& state, const Step& step, const St
   poseOptimizationSQP_->setSupportRegion(supportRegion);
   poseOptimizationSQP_->setLimbLengthConstraints(minLimbLenghts_, maxLimbLenghts_);
 
+//  std::cout<<"---------------------------------------"<<std::endl;
+//  std::cout<<"target_     "<<target_<<std::endl;
+//  std::cout<<"---------------------------------------"<<std::endl;
   if (!optimizePose(target_)) {
     std::cerr << "BaseAuto::compute: Could not compute pose optimization." << std::endl;
     std::cerr << "Printing optimization problem:" << std::endl;

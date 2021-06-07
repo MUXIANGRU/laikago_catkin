@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /TF1
         - /GridMap2
+        - /GridMap3
       Splitter Ratio: 0.663888991
     Tree Height: 775
   - Class: rviz/Selection
@@ -64,6 +65,8 @@ Visualization Manager:
           Value: true
         LF_THIGH:
           Value: true
+        LF_thigh_shoulder:
+          Value: true
         LH_FOOT:
           Value: true
         LH_HIP:
@@ -71,6 +74,8 @@ Visualization Manager:
         LH_SHANK:
           Value: true
         LH_THIGH:
+          Value: true
+        LH_thigh_shoulder:
           Value: true
         RF_FOOT:
           Value: true
@@ -80,6 +85,8 @@ Visualization Manager:
           Value: true
         RF_THIGH:
           Value: true
+        RF_thigh_shoulder:
+          Value: true
         RH_FOOT:
           Value: true
         RH_HIP:
@@ -88,9 +95,13 @@ Visualization Manager:
           Value: true
         RH_THIGH:
           Value: true
+        RH_thigh_shoulder:
+          Value: true
         base:
           Value: true
         base_inertia:
+          Value: true
+        base_pronto:
           Value: true
         desired/LF_FOOT:
           Value: true
@@ -126,29 +137,25 @@ Visualization Manager:
           Value: true
         desired/base:
           Value: true
+        desired/base_inertia:
+          Value: true
         foot_print:
           Value: true
         front_camera_frame_optical:
           Value: true
         front_camera_link:
           Value: true
-        imu_link:
+        front_high_camera_frame_optical:
           Value: true
-        map:
+        front_high_camera_link:
+          Value: true
+        imu_link:
           Value: true
         odom:
           Value: true
-        rear_camera_frame_optical:
+        right_camera_frame_optical:
           Value: true
-        rear_camera_link:
-          Value: true
-        stereo_camera_link:
-          Value: true
-        stereo_camera_link_optical:
-          Value: true
-        velodyne:
-          Value: true
-        velodyne_base_link:
+        right_camera_link:
           Value: true
       Marker Scale: 0.300000012
       Name: TF
@@ -156,67 +163,75 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          odom:
-            desired/base:
-              desired/LF_HIP:
-                desired/LF_THIGH:
-                  desired/LF_SHANK:
-                    desired/LF_FOOT:
+        odom:
+          base_pronto:
+            {}
+          desired/base:
+            desired/LF_HIP:
+              desired/LF_THIGH:
+                desired/LF_SHANK:
+                  desired/LF_FOOT:
+                    {}
+            desired/LH_HIP:
+              desired/LH_THIGH:
+                desired/LH_SHANK:
+                  desired/LH_FOOT:
+                    {}
+            desired/RF_HIP:
+              desired/RF_THIGH:
+                desired/RF_SHANK:
+                  desired/RF_FOOT:
+                    {}
+            desired/RH_HIP:
+              desired/RH_THIGH:
+                desired/RH_SHANK:
+                  desired/RH_FOOT:
+                    {}
+            desired/base_inertia:
+              {}
+          foot_print:
+            base:
+              LF_HIP:
+                LF_THIGH:
+                  LF_SHANK:
+                    LF_FOOT:
                       {}
-              desired/LH_HIP:
-                desired/LH_THIGH:
-                  desired/LH_SHANK:
-                    desired/LH_FOOT:
-                      {}
-              desired/RF_HIP:
-                desired/RF_THIGH:
-                  desired/RF_SHANK:
-                    desired/RF_FOOT:
-                      {}
-              desired/RH_HIP:
-                desired/RH_THIGH:
-                  desired/RH_SHANK:
-                    desired/RH_FOOT:
-                      {}
-            foot_print:
-              base:
-                LF_HIP:
-                  LF_THIGH:
-                    LF_SHANK:
-                      LF_FOOT:
-                        {}
-                LH_HIP:
-                  LH_THIGH:
-                    LH_SHANK:
-                      LH_FOOT:
-                        {}
-                RF_HIP:
-                  RF_THIGH:
-                    RF_SHANK:
-                      RF_FOOT:
-                        {}
-                RH_HIP:
-                  RH_THIGH:
-                    RH_SHANK:
-                      RH_FOOT:
-                        {}
-                base_inertia:
+                LF_thigh_shoulder:
                   {}
-                front_camera_link:
-                  front_camera_frame_optical:
-                    {}
-                imu_link:
+              LH_HIP:
+                LH_THIGH:
+                  LH_SHANK:
+                    LH_FOOT:
+                      {}
+                LH_thigh_shoulder:
                   {}
-                rear_camera_link:
-                  rear_camera_frame_optical:
-                    {}
-                stereo_camera_link:
-                  stereo_camera_link_optical:
-                    {}
-                velodyne_base_link:
-                  velodyne:
-                    {}
+              RF_HIP:
+                RF_THIGH:
+                  RF_SHANK:
+                    RF_FOOT:
+                      {}
+                RF_thigh_shoulder:
+                  {}
+              RH_HIP:
+                RH_THIGH:
+                  RH_SHANK:
+                    RH_FOOT:
+                      {}
+                RH_thigh_shoulder:
+                  {}
+              base_inertia:
+                {}
+              front_camera_link:
+                front_camera_frame_optical:
+                  {}
+              front_high_camera_link:
+                front_high_camera_frame_optical:
+                  {}
+              imu_link:
+                {}
+              right_camera_link:
+                right_camera_frame_optical:
+                  {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -307,6 +322,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        LF_thigh_shoulder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         LH_FOOT:
           Alpha: 1
           Show Axes: false
@@ -323,6 +343,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         LH_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LH_thigh_shoulder:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -348,6 +373,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        RF_thigh_shoulder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         RH_FOOT:
           Alpha: 1
           Show Axes: false
@@ -364,6 +394,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         RH_THIGH:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RH_thigh_shoulder:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -387,34 +422,25 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        front_high_camera_frame_optical:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_high_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         imu_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        rear_camera_frame_optical:
+        right_camera_frame_optical:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        rear_camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        stereo_camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        stereo_camera_link_optical:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        velodyne:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        velodyne_base_link:
+        right_camera_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -431,7 +457,7 @@ Visualization Manager:
       Color: 200; 200; 200
       Color Layer: elevation
       Color Transformer: GridMapLayer
-      Enabled: true
+      Enabled: false
       Height Layer: elevation
       Height Transformer: GridMapLayer
       History Length: 1
@@ -445,7 +471,7 @@ Visualization Manager:
       Topic: /elevation_mapping/elevation_map_raw
       Unreliable: false
       Use Rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Class: grid_map_rviz_plugin/GridMap
@@ -467,6 +493,57 @@ Visualization Manager:
       Unreliable: false
       Use Rainbow: true
       Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: false
+      Class: grid_map_rviz_plugin/GridMap
+      Color: 200; 200; 200
+      Color Layer: traversability
+      Color Transformer: GridMapLayer
+      Enabled: true
+      Height Layer: elevation
+      Height Transformer: GridMapLayer
+      History Length: 1
+      Invert Rainbow: true
+      Max Color: 255; 255; 255
+      Max Intensity: 1.20000005
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: GridMap
+      Show Grid Lines: true
+      Topic: /traversability_estimation/traversability_map
+      Unreliable: false
+      Use Rainbow: true
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /action_server_test_node/desired_footholds
+      Name: MarkerArray
+      Namespaces:
+        LF_LEG: true
+        LH_LEG: true
+        RF_LEG: true
+        RH_LEG: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /action_server_test_node/optimized_footholds
+      Name: MarkerArray
+      Namespaces:
+        LF_LEG: true
+        LH_LEG: true
+        RF_LEG: true
+        RH_LEG: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /foothold_planner/global_footholds_marker
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -492,25 +569,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.612486
+      Distance: 5.51338625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.944505036
-        Y: 2.26673174
-        Z: 1.10760498
+        X: -2.28442025
+        Y: 3.68035531
+        Z: -0.296578556
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.549796581
+      Pitch: 0.0797968134
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.25241601
+      Yaw: 5.29059649
     Saved: ~
 Window Geometry:
   Displays:
@@ -518,7 +595,7 @@ Window Geometry:
   Height: 1056
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000396fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000396000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000040efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000040e000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003efc0100000002fb0000000800540069006d00650100000000000007800000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000006100000039600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000396fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000396000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000040efc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a0056006900650077007300000000280000040e000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007410000003efc0100000002fb0000000800540069006d00650100000000000007410000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000005d10000039600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -527,6 +604,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 1920
-  X: 1920
+  Width: 1857
+  X: 63
   Y: 24

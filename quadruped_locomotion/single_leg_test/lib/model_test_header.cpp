@@ -229,7 +229,7 @@ bool MyRobotSolver::loadLimbModelFromURDF()
     //ROS_WARN("LOAD URDF FROM THERE!!!!!!!!!!!!!!!!");
 //  string lf_leg_urdf_dir_str = ros::package::getPath("quadruped_model") + "/urdf/simpledog_lf_leg.urdf";
   string lf_leg_urdf_dir_str = ros::package::getPath("quadruped_model") + "/urdf/quadruped_model_lf_leg.urdf";
-  
+
   char* lf_leg_urdf_dir = (char*)lf_leg_urdf_dir_str.c_str();
   RigidBodyDynamics::Addons::URDFReadFromFile(lf_leg_urdf_dir, LimbRBDLModel.at(free_gait::LimbEnum::LF_LEG), false, false);
 //  std::cout<<" Gravity :"<<LimbRBDLModel.at(free_gait::LimbEnum::LF_LEG)->gravity<<std::endl;
@@ -514,7 +514,7 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
 //      VecTauAct = -VecTauAct;
     Tauacutal.row(0) = VecTauAct;
     TauFeedForward = VecTauAct;
-    std::cout<<"TauFeedForward    "<<TauFeedForward<<std::endl;
+    //std::cout<<"TauFeedForward    "<<TauFeedForward<<std::endl;
     Eigen::Vector3d position_error_in_base, velocity_error_in_base;
     position_error_in_base = robot_state_->getTargetFootPositionInBaseForLimb(limb).vector()
         - robot_state_->getPositionBaseToFootInBaseFrame(limb).vector();
@@ -527,10 +527,10 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
     velocity_error_in_base = robot_state_->getTargetFootVelocityInBaseForLimb(limb).vector()
         - robot_state_->getEndEffectorVelocityInBaseForLimb(limb).vector();
 //    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
-    std::cout<<"Target:   "<< robot_state_->getTargetFootVelocityInBaseForLimb(limb).vector()<<std::endl;
-    std::cout<<"Real:     "<< robot_state_->getEndEffectorVelocityInBaseForLimb(limb).vector()<<std::endl;
+    //std::cout<<"Target:   "<< robot_state_->getTargetFootVelocityInBaseForLimb(limb).vector()<<std::endl;
+    //std::cout<<"Real:     "<< robot_state_->getEndEffectorVelocityInBaseForLimb(limb).vector()<<std::endl;
 //    std::cout<<"position_error_in_base  "<<position_error_in_base<<std::endl;
-    std::cout<<"velocity_error_in_base  "<<velocity_error_in_base<<std::endl;
+    //std::cout<<"velocity_error_in_base  "<<velocity_error_in_base<<std::endl;
 //    std::cout<<"+++++++++++++++++++++++++"<<std::endl;
 //    ROS_WARN_STREAM("Inertial Matrix :" <<QuadrupedRobotModel.IA<<std::endl);
 //      kp_={300,300,300};

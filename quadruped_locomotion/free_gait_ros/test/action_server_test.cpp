@@ -298,7 +298,7 @@ public:
         is_start_gait = true;
         parameters->footstepParameters.minimumDuration_ = 0.3;
         parameters->baseTargetParameters.minimumDuration = 0.3;
-        gait_generate_client_.initializeTrot(0.4,0.4);
+        gait_generate_client_.initializeTrot(0.8,0.8);
 //        gait_generate_client_.initializePace(0.45, 3*0.5);
       ROS_INFO("START GAIT....");
       }

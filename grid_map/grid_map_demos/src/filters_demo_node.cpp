@@ -16,7 +16,13 @@ int main(int argc, char** argv)
   ros::NodeHandle nodeHandle("~");
   bool success;
   grid_map_demos::FiltersDemo filtersDemo(nodeHandle, success);
-  if (success) ros::spin();
+  ros::Rate r(5.0);
+  while (ros::ok())
+  {
+      if (success) ros::spinOnce();
+      r.sleep();
+  }
+
   return 0;
 }
 

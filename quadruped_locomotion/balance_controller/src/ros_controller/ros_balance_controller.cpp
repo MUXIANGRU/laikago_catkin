@@ -243,6 +243,13 @@ namespace balance_controller{
 //    single_leg_solver_->setvecQAct(Eigen::Vector3d(0,0,0), free_gait::LimbEnum::RH_LEG);
 //    single_leg_solver_->setvecQAct(Eigen::Vector3d(0,0,0), free_gait::LimbEnum::LH_LEG);
 
+    foot_vel.data.resize(16);
+    footVelPub_ = node_handle.advertise<std_msgs::Float64MultiArray>("/foot_vel_norm",1);
+    lf_contact_forceSub_ = node_handle.subscribe("/estimate_torque_lf",1,&RosBalanceController::lf_forceCB,this);
+    rf_contact_forceSub_ = node_handle.subscribe("/estimate_torque_rf",1,&RosBalanceController::rf_forceCB,this);
+    rh_contact_forceSub_ = node_handle.subscribe("/estimate_torque_rh",1,&RosBalanceController::rh_forceCB,this);
+    lh_contact_forceSub_ = node_handle.subscribe("/estimate_torque_lh",1,&RosBalanceController::lh_forceCB,this);
+
     log_data_srv_ = node_handle.advertiseService("/capture_log_data", &RosBalanceController::logDataCapture, this);
 
     base_command_sub_ = node_handle.subscribe<free_gait_msgs::RobotState>("/desired_robot_state", 1, &RosBalanceController::baseCommandCallback, this);
@@ -947,6 +954,10 @@ namespace balance_controller{
         pos_error.position.x = virtual_model_controller_->getPosError().x();
         pos_error.position.y = virtual_model_controller_->getPosError().y();
         pos_error.position.z = virtual_model_controller_->getPosError().z();
+       // pos_error.orientation.w = virtual_model_controller_->getOriError().w();
+        pos_error.orientation.x = virtual_model_controller_->getOriError().x();    //MXR::NOTE: for euler angle ???
+        pos_error.orientation.y = virtual_model_controller_->getOriError().y();
+        pos_error.orientation.z = virtual_model_controller_->getOriError().z();
         twist_error.linear.x = virtual_model_controller_->getLinearVelError().x();
         twist_error.linear.y = virtual_model_controller_->getLinearVelError().y();
         twist_error.linear.z = virtual_model_controller_->getLinearVelError().z();
@@ -1471,6 +1482,7 @@ namespace balance_controller{
         is_legmode_.at(free_gait::LimbEnum::LH_LEG) = false;
       }
 
+    //MXR::NOTE: 根据gait_generate_client设置的support_Leg来确定理想的足端接触状态
     if(robot_state_msg->lf_leg_mode.support_leg){
         robot_state_->setSupportLeg(free_gait::LimbEnum::LF_LEG, true);
         robot_state_->setSurfaceNormal(free_gait::LimbEnum::LF_LEG,
@@ -1590,9 +1602,125 @@ namespace balance_controller{
 
   }
 
+  void RosBalanceController::lf_forceCB(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+        lf_contact_force.wrench.force = msg->wrench.force;
+  }
+  void RosBalanceController::rf_forceCB(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+        rf_contact_force.wrench.force = msg->wrench.force;
+  }
+  void RosBalanceController::rh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+        rh_contact_force.wrench.force = msg->wrench.force;
+  }
+  void RosBalanceController::lh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+        lh_contact_force.wrench.force = msg->wrench.force;
+  }
   void RosBalanceController::contactStateMachine()
   {
 
+      Eigen::Vector3d v_lf,v_rf,v_rh,v_lh;
+      Eigen::Vector3d f_lf,f_rf,f_rh,f_lh;
+      f_lf<<lf_contact_force.wrench.force.x,lf_contact_force.wrench.force.y,lf_contact_force.wrench.force.z;
+      f_rf<<rf_contact_force.wrench.force.x,rf_contact_force.wrench.force.y,rf_contact_force.wrench.force.z;
+      f_rh<<rh_contact_force.wrench.force.x,rh_contact_force.wrench.force.y,rh_contact_force.wrench.force.z;
+      f_lh<<lh_contact_force.wrench.force.x,lh_contact_force.wrench.force.y,lh_contact_force.wrench.force.z;
+      v_lf<<robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LF_LEG).x(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LF_LEG).y(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LF_LEG).z();
+      v_rf<<robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RF_LEG).x(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RF_LEG).y(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RF_LEG).z();
+      v_lh<<robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LH_LEG).x(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LH_LEG).y(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LH_LEG).z();
+      v_rh<<robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RH_LEG).x(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RH_LEG).y(),
+              robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RH_LEG).z();
+      double f_lf_norm = sqrt(f_lf.squaredNorm());
+      double f_rf_norm = sqrt(f_rf.squaredNorm());
+      double f_rh_norm = sqrt(f_rh.squaredNorm());
+      double f_lh_norm = sqrt(f_lh.squaredNorm());
+      double v_lf_norm = v_lf.squaredNorm();
+      double v_rf_norm = v_rf.squaredNorm();
+      double v_rh_norm = v_rh.squaredNorm();
+      double v_lh_norm = v_lh.squaredNorm();
+
+      if(robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG)){
+          foot_vel.data[0]=v_lf_norm;
+          double sum = (robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)*v_rf_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)*v_rh_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG)*v_lh_norm)/(robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG));
+          foot_vel.data[4]=sum;
+          foot_vel.data[12]=f_lf_norm;
+          if((v_lf_norm<0.1*sum||v_lf_norm>10*sum)&&v_lf_norm>0.06&&f_lf_norm<30){
+              //ROS_WARN("LF_leg is slipping!!!!!!!!!!!!");
+              foot_vel.data[8]=1;
+          }else{
+              foot_vel.data[8]=0;
+          }
+
+      }
+      if(robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)){
+          foot_vel.data[1]=v_rf_norm;
+          double sum = (robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG)*v_lf_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)*v_rh_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG)*v_lh_norm)/(robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG));
+          foot_vel.data[5]=sum;
+          foot_vel.data[13]=f_rf_norm;
+          if((v_rf_norm<0.1*sum||v_rf_norm>10*sum)&&v_rf_norm>0.06&&f_rf_norm<30){
+              //ROS_WARN("RF_leg is slipping!!!!!!!!!!!!");
+              foot_vel.data[9]=1;
+          }else{
+              foot_vel.data[9]=0;
+          }
+
+      }
+      if(robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)){
+          foot_vel.data[2]=v_rh_norm;
+          double sum = (robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)*v_rf_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG)*v_lf_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG)*v_lh_norm)/(robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG));
+          foot_vel.data[6]=sum;
+          foot_vel.data[14]=f_rh_norm;
+          if((v_rh_norm<0.1*sum||v_rh_norm>10*sum)&&v_rh_norm>0.06&&f_rh_norm<30){
+              //ROS_WARN("RH_leg is slipping!!!!!!!!!!!!");
+              foot_vel.data[10]=1;
+          }else{
+              foot_vel.data[10]=0;
+          }
+
+      }
+      if(robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG)){
+          foot_vel.data[3]=v_lh_norm;
+          double sum = (robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)*v_rf_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)*v_rh_norm+
+                  robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG)*v_lf_norm)/(robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::RH_LEG)+
+                                                                                     robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG));
+          foot_vel.data[7]=sum;
+          foot_vel.data[15]=f_lh_norm;
+          if((v_lh_norm<0.1*sum||v_lh_norm>10*sum)&&v_lh_norm>0.06&&f_lh_norm<30){
+              //ROS_WARN("LH_leg is slipping!!!!!!!!!!!!");
+              foot_vel.data[11]=1;
+          }else{
+              foot_vel.data[11]=0;
+          }
+
+      }
+
+      footVelPub_.publish(foot_vel);
+//      std::cout<<"==================================="<<std::endl;
+//      std::cout<<"v_lf_norm   "<<v_lf_norm<<std::endl;
+//      std::cout<<"v_rf_norm   "<<v_rf_norm<<std::endl;
+//      std::cout<<"v_rh_norm   "<<v_rh_norm<<std::endl;
+//      std::cout<<"v_lh_norm   "<<v_lh_norm<<std::endl;
+//      std::cout<<"==================================="<<std::endl;
+      //<<robot_state->get
     for(unsigned int i = 0;i<4;i++)
       {
         free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
@@ -1601,8 +1729,7 @@ namespace balance_controller{
           {
             ROS_ERROR_ONCE("real robot coming there!!!!!!!!!!!!!!!");
             real_contact_force_.at(limb).z() = robot_state_handle.contact_pressure_[i];
-//            std::cout<<robot_state_handle.contact_pressure_[i]<<"  "<<initial_pressure[i]<<std::endl;
-            if((robot_state_handle.contact_pressure_[i]) > 25.0)
+            if((robot_state_handle.contact_pressure_[i]) > 25.0)  //MXR::NOTE: FOR laikago this parameter should be changed more carefully
               {
                 //ROS_INFO("contact!!!!!!!!!!!!!!");
                 //std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
@@ -1612,10 +1739,18 @@ namespace balance_controller{
                 //ROS_INFO("miss contact!!!!!!!!!!!!!!");
                 //std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
 //                robot_state_handle.foot_contact_[i] = 0;
-                real_contact_.at(limb) = false;
+                real_contact_.at(limb) = true;
+                        //;
               }
           }
 
+
+//        if(robot_state->isSupportLeg(limb)){
+
+//        }
+//        std::cout<<"==================================="<<std::endl;
+//        std::cout<<i<<"    "<<robot_state->getEndEffectorVelocityInBaseForLimb(limb);
+//        std::cout<<"==================================="<<std::endl;
 //        std::cout<<i<<"     "<<real_contact_.at(limb)<<std::endl;
 
 //        if(real_robot)

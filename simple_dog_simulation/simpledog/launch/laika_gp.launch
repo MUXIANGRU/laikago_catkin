@@ -10,7 +10,7 @@
 
   <arg name="x" default="0"/>
   <arg name="y" default="0"/>
-  <arg name="z" default="0.0"/>
+  <arg name="z" default="0.5"/>
   <arg name="yaw" default="0"/>
 
   <arg name="fake_pose" default="true"/>
@@ -49,6 +49,7 @@
   <param name="/cal_fator_x" value="1.25" />
   <param name="/cal_fator_y" value="1.25" />
   <param name="/cal_fator_z" value="1.0" />
+  <param name="/use_fake_pose" value="true" />
 
   <param name="robot_description" command="$(find xacro)/xacro '$(find simpledog)/urdf/laikago/my_laika.xacro'
   --inorder

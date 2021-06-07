@@ -249,6 +249,7 @@ void RobotStateGazeboRosControlPlugin::Update()
 
   // Check if we should update the controllers
   if(sim_period >= control_period_) {
+      //ROS_WARN("ENTER THIS BRANCH ####################3");
       sim_period = ros::Duration(sim_period.toSec()/real_time_factor);
     // Store this simulation time
     last_update_sim_time_ros_ = sim_time_ros;

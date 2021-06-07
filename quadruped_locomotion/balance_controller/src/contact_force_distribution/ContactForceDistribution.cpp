@@ -306,6 +306,10 @@ bool ContactForceDistribution::addFrictionConstraints()
       footContactNormalInWorldFrame = robot_state_->getSurfaceNormal(legInfo.first);
 //      terrain_->getNormal(positionWorldToFootInWorldFrame, footContactNormalInWorldFrame);
       Vector footContactNormalInBaseFrame = orientationWorldToBase.rotate(footContactNormalInWorldFrame);
+//      std::cout<<"-----------------------------------------------------"<<std::endl;
+//      std::cout<<"footContactNormalInWorldFrame    "<<footContactNormalInWorldFrame<<std::endl;
+//      std::cout<<"footContactNormalInBaseFrame    "<<footContactNormalInBaseFrame<<std::endl;
+//      std::cout<<"-----------------------------------------------------"<<std::endl;
 
 //      const Vector3d& normalDirection = legInfo.first->getFootContactNormalInWorldFrame().toImplementation();
       const Vector3d normalDirection = footContactNormalInBaseFrame.toImplementation();

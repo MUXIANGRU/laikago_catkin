@@ -31,11 +31,11 @@ bool PoseConstraintsChecker::check(const Pose& pose)
   // TODO(Shunyao): findout the useness of those lines
 //! state_ is a protected member in poseOptimizationBase, set it to AdapterBase,
 //! implemented in AdapterDummy
-//! 
+//!
     state_.setPoseBaseToWorld(pose); // this member function is in the quadrupedModel class, which is a parent class of State
 
-    
-    
+
+
     //  adapter_.setInternalDataFromState(state_, false, true, false, false); // To guide IK.
     adapter_.setInternalDataFromState(state_); // To guide IK.
 //  if (!updateJointPositionsInState(state_)) {

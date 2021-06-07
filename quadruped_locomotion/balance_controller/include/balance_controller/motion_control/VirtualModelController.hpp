@@ -107,6 +107,7 @@ class VirtualModelController : public MotionControllerBase
   LocalAngularVelocity getAngularVelError() const;
   LinearVelocity getLinearVelError() const;
   Position getPosError() const;
+  Eigen::Vector3d getOriError() const;
   Force getDesiredVirtualForceInBaseFrame() const;
   Torque getDesiredVirtualTorqueInBaseFrame() const;
   void getDistributedVirtualForceAndTorqueInBaseFrame(Force& netForce, Torque& netTorque) const;

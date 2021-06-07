@@ -11,7 +11,7 @@ steps:
         average_angular_velocity: 0.02
         target:
           frame: foot_print
-          position: [0.0,0.0,0.3]
+          position: [0.0,0.0,0.25]
           orientation: [0.0,0.0,0.0,1.0]
   - step:
     - base_target:
@@ -20,7 +20,7 @@ steps:
         average_angular_velocity: 0.5
         target:
           frame: foot_print
-          position: [0.0,0.0,0.8]
+          position: [0.0,0.0,0.6]
           orientation: [0.0,0.0,0.0,1.0]
   - step:
     - end_effector_target:
@@ -29,28 +29,28 @@ steps:
         ignore_for_pose_adaptation: false
         target_position:
           frame: base
-          position: [0.4,0.25,-0.35]
+          position: [0.24,0.15,-0.25]
     - end_effector_target:
         name: RF_LEG
         ignore_contact: false
         ignore_for_pose_adaptation: false
         target_position:
           frame: base
-          position: [0.4,-0.25,-0.35]
+          position: [0.24,-0.15,-0.25]
     - end_effector_target:
         name: RH_LEG
         ignore_contact: false
         ignore_for_pose_adaptation: false
         target_position:
           frame: base
-          position: [-0.4,-0.25,-0.35]
+          position: [-0.24,-0.15,-0.25]
     - end_effector_target:
         name: LH_LEG
         ignore_contact: false
         ignore_for_pose_adaptation: false
         target_position:
           frame: base
-          position: [-0.4,0.25,-0.35]
+          position: [-0.24,0.15,-0.25]
     - base_target:
         ignore_timing_of_leg_motion: true
         average_linear_velocity: 0.2
@@ -61,5 +61,5 @@ steps:
           orientation: [0.0,0.0,0.0,1.0]
     - step:
       - base_auto:
-         height: 0.3
+         height: 0.25
          ignore_timing_of_leg_motion: false

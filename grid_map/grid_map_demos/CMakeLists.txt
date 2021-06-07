@@ -76,6 +76,11 @@ add_executable(
   src/IteratorsDemo.cpp
 )
 
+add_executable(grid_map_to_image_demo
+  src/grid_map_to_image_demo_node.cpp
+  src/GridmapToImageDemo.cpp
+)
+
 add_executable(
   image_to_gridmap_demo
   src/image_to_gridmap_demo_node.cpp
@@ -166,6 +171,12 @@ target_link_libraries(
   filters_demo
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(
+  grid_map_to_image_demo
+  ${catkin_LIBRARIES}
+)
+
 
 #############
 ## Install ##
