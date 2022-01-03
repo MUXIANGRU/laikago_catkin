@@ -11,20 +11,27 @@ input_sources:
       publish_on_update: true # Wheter to publish the elevation map after a callback from this source. 
       sensor_processor:
         type: structured_light
-    rear:
-      type: pointcloud
+    right: # A name to identify the input source
+      type: pointcloud # Supported types: pointcloud
       topic: /right_camera/depth/points
       queue_size: 1
-      publish_on_update: false
+      publish_on_update: true # Wheter to publish the elevation map after a callback from this source. 
       sensor_processor:
         type: structured_light
-#    front_high:
-#      type: pointcloud
-#      topic: /front_high_camera/depth/points
-#      queue_size: 1
-#      publish_on_update: false
-#      sensor_processor:
-#        type: structured_light
+    left: # A name to identify the input source
+      type: pointcloud # Supported types: pointcloud
+      topic: /left_camera/depth/points
+      queue_size: 1
+      publish_on_update: true # Wheter to publish the elevation map after a callback from this source. 
+      sensor_processor:
+        type: structured_light
+    rear: # A name to identify the input source
+      type: pointcloud # Supported types: pointcloud
+      topic: /rear_camera/depth/points
+      queue_size: 1
+      publish_on_update: true # Wheter to publish the elevation map after a callback from this source. 
+      sensor_processor:
+        type: structured_light
 track_point_frame_id:                       base
 track_point_x:                              0.0
 track_point_y:                              0.0
@@ -32,23 +39,24 @@ track_point_z:                              0.0
 min_update_rate:                            2.0
 time_tolerance:                             1.0
 time_offset_for_point_cloud:                0.0
-sensor_processor/ignore_points_above:       0.4
+sensor_processor/ignore_points_above:       1.0
 robot_motion_map_update/covariance_scale:   0.01
 
 # Map.
-length_in_x:                                3.0
-length_in_y:                                3.0
+length_in_x:                                6.0
+length_in_y:                                6.0
 position_x:                                 0.0
 position_y:                                 0.0
-resolution:                                 0.1
+resolution:                                 0.05
 min_variance:                               0.0001
 max_variance:                               0.05
-mahalanobis_distance_threshold:             2.5
+mahalanobis_distance_threshold:             2.0
 multi_height_noise:                         0.001
 surface_normal_positive_axis:               z
-fused_map_publishing_rate:                  0.5
-enable_visibility_cleanup:                  false
-visibility_cleanup_rate:                    1.0
+fused_map_publishing_rate:                  5.0
+enable_visibility_cleanup:                  true
+#enable_continuous_cleanup:                  true
+visibility_cleanup_rate:                    2.0  #好像只有设为1的时候有用???
 scanning_duration:                          1.0
 
 # Init submap

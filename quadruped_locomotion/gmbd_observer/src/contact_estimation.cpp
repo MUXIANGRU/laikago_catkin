@@ -2,6 +2,7 @@
 #include "math.h"
 #include "iostream"
 #include "ros/ros.h"
+//#include "gmbd_observer/gmbd_observer.h"
 
 
 ContactEstimation::ContactEstimation(const ros::NodeHandle& node_handle)
@@ -25,6 +26,7 @@ ContactEstimation::ContactEstimation(const ros::NodeHandle& node_handle)
         contact_prob.data.resize(4);
         x_state_pre.resize(4);
         foot_pos_sub = nodeHandle_.subscribe("/laikago_pronto/foot_position_in_world",1,&ContactEstimation::footposCB,this);
+        //foot_pos_sub = nodeHandle_.subscribe("/legodom/foot_position_in_world",1,&ContactEstimation::footposCB,this);
         lf_force_est_sub = nodeHandle_.subscribe("/estimate_torque_lf",1,&ContactEstimation::lf_forceCB,this);
         rf_force_est_sub = nodeHandle_.subscribe("/estimate_torque_rf",1,&ContactEstimation::rf_forceCB,this);
         lh_force_est_sub = nodeHandle_.subscribe("/estimate_torque_lh",1,&ContactEstimation::lh_forceCB,this);
@@ -42,7 +44,7 @@ void ContactEstimation::init(){
     sigma_0 = 0.05;
     mu_z = 0.0;
     mu_f = 50.0;
-    sigma_z = 0.05;
+    sigma_z = 0.5;
     sigma_f = 0.05;
     P_pre.setIdentity();
     Q_pre.setZero();
@@ -59,6 +61,18 @@ void ContactEstimation::init(){
     R_(5,5) = sigma_z;//height
     R_(6,6) = sigma_f;//force
     R_(7,7) = sigma_z;//height
+    lf_height = 0;
+    lh_height = 0;
+    rf_height = 0;
+    rh_height = 0;
+    lf_phase = -1;
+    lh_phase = -1;
+    rf_phase = -1;
+    rh_phase = -1;
+//    p_h_lf=0;
+//    p_h_rf=0;
+//    p_h_rh=0;
+//    p_h_lh=0;
 
 
 }
@@ -72,7 +86,7 @@ double ContactEstimation::computeContactPro(double phase){
 //    p_c = 0.5 * (s_phi * (erf((phase-mu_0) / (sigma_0 * sqrt(2)))+erf((mu_1-phase) / (sigma_1 * sqrt(2))))+
 //               (1-s_phi)*(2+erf((mu_0_-phase) / (sigma_0_ * sqrt(2)))+erf((phase-mu_1_) / (sigma_1 * sqrt(2)))));
     double p_c;
-    p_c = 0.5*(1+erf((2*phase-1)/(sigma_0*sqrt(2))));
+    p_c = 0.5*(1+erf((10*phase-1)/(sigma_0*sqrt(2))));
     return 1 - p_c;
 }
 //MXR::NOTE: input h(height of the foot)
@@ -130,7 +144,7 @@ void ContactEstimation::Update(Eigen::Matrix<double,8,1> &z){
     Eigen::Matrix<double,8,8> Si = S.inverse();
     Eigen::Matrix<double,4,8> PHt = P_pre* H_T;
     Eigen::Matrix<double,4,8> K = PHt * S;
-    std::cout<<"============================"<<std::endl;
+    //std::cout<<"============================"<<std::endl;
 //    std::cout<<"P_pre     "<<P_pre<<std::endl;
 //    std::cout<<"H_mea     "<<H_mea<<std::endl;
 //    std::cout<<"H_T     "<<H_T<<std::endl;
@@ -157,6 +171,10 @@ void ContactEstimation::Update(Eigen::Matrix<double,8,1> &z){
 
 
 void ContactEstimation::footposCB(const std_msgs::Float64MultiArray::ConstPtr &msg){
+    lf_height = msg->data[2];
+    lh_height = msg->data[11];
+    rh_height = msg->data[8];
+    rf_height = msg->data[5];
     p_h_lf = computeHeightPro(msg->data[2]);
     p_h_rf = computeHeightPro(msg->data[5]);
     p_h_lh = computeHeightPro(msg->data[11]);
@@ -194,10 +212,34 @@ void ContactEstimation::rh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr 
 //    std::cout<<"============================"<<std::endl;
 }
 void ContactEstimation::robot_phaseCB(const free_gait_msgs::RobotState::ConstPtr &msg){
-    p_c_lf = computeContactPro(msg->lf_leg_mode.phase);
-    p_c_rf = computeContactPro(msg->rf_leg_mode.phase);
-    p_c_lh = computeContactPro(msg->lh_leg_mode.phase);
-    p_c_rh = computeContactPro(msg->rh_leg_mode.phase);
+    lf_phase=msg->lf_leg_mode.phase;
+    rf_phase=msg->rf_leg_mode.phase;
+    lh_phase=msg->lh_leg_mode.phase;
+    rh_phase=msg->rh_leg_mode.phase;
+    if(msg->lf_leg_mode.support_leg==1&&msg->lf_leg_mode.phase!=0.0){
+        p_c_lf = computeContactPro(0);
+    }else{
+        p_c_lf = computeContactPro(msg->lf_leg_mode.phase);
+    }
+    if(msg->rf_leg_mode.support_leg==1&&msg->rf_leg_mode.phase!=0.0){
+        p_c_rf = computeContactPro(0);
+    }else{
+        p_c_rf = computeContactPro(msg->rf_leg_mode.phase);
+    }
+    if(msg->lh_leg_mode.support_leg==1&&msg->lh_leg_mode.phase!=0.0){
+        p_c_lh = computeContactPro(0);
+    }else{
+        p_c_lh = computeContactPro(msg->lh_leg_mode.phase);
+    }
+    if(msg->rh_leg_mode.support_leg==1&&msg->rh_leg_mode.phase!=0.0){
+        p_c_rh = computeContactPro(0);
+    }else{
+        p_c_rh = computeContactPro(msg->rh_leg_mode.phase);
+    }
+
+//    p_c_rf = computeContactPro(msg->rf_leg_mode.phase);
+//    p_c_lh = computeContactPro(msg->lh_leg_mode.phase);
+//    p_c_rh = computeContactPro(msg->rh_leg_mode.phase);
 //    std::cout<<"============================"<<std::endl;
 //    std::cout<<"p_c_lf     "<<p_c_lf<<std::endl;
 //    std::cout<<"p_c_rf     "<<p_c_rf<<std::endl;
@@ -207,7 +249,7 @@ void ContactEstimation::robot_phaseCB(const free_gait_msgs::RobotState::ConstPtr
 }
 void ContactEstimation::ContactPublisherThread()
 {
-    ros::Rate loop_rate(100);
+    ros::Rate loop_rate(400);
     while (ros::ok())
     {
         boost::recursive_mutex::scoped_lock lock(r_mutex);
@@ -225,10 +267,24 @@ void ContactEstimation::ContactPublisherThread()
         Z(4,0)=p_f_lh;Z(5,0)=p_h_lh;Z(6,0)=p_f_rh;Z(7,0)=p_h_rh;
         Update(Z);
 
-        contact_prob.data[0] = x_state_pre(0,0);
-        contact_prob.data[1] = x_state_pre(1,0);
-        contact_prob.data[2] = x_state_pre(2,0);
-        contact_prob.data[3] = x_state_pre(3,0);
+        contact_prob.data[0] = x_state_pre(0,0);//lf
+        contact_prob.data[1] = x_state_pre(1,0);//rf
+        contact_prob.data[3] = x_state_pre(2,0);//lh
+        contact_prob.data[2] = x_state_pre(3,0);//rh
+
+            // std::cout<<"============================"<<std::endl;
+            // std::cout<<"lf_height     "<<lf_height<<std::endl;
+            // std::cout<<"rf_height     "<<rf_height<<std::endl;
+            // std::cout<<"lh_height     "<<lh_height<<std::endl;
+            // std::cout<<"rh_height     "<<rh_height<<std::endl;
+            // std::cout<<"============================"<<std::endl;
+        if((lf_height==0.0&&lh_height==0.0&&rh_height==0.0&&rf_height==0.0)||
+                (lf_phase==-1.0&&lh_phase==-1.0&&rh_phase==-1.0&&rf_phase==-1.0)){
+            contact_prob.data[0] = 1.0;
+            contact_prob.data[1] = 1.0;
+            contact_prob.data[2] = 1.0;
+            contact_prob.data[3] = 1.0;
+        }
 //        std::cout<<"============================"<<std::endl;
 //        std::cout<<"U    "<<U<<std::endl;
 //        std::cout<<"Z    "<<Z<<std::endl;
@@ -239,10 +295,7 @@ void ContactEstimation::ContactPublisherThread()
        //std::cout<<robot_state_->getJointPositionsForLimb(free_gait::LimbEnum::LF_LEG)<<std::endl;
 //       std::cout<<robot_state_->getPositionBaseToFootInBaseFrame(free_gait::LimbEnum::LF_LEG).y()<<std::endl;
 //       std::cout<<robot_state_->getPositionBaseToFootInBaseFrame(free_gait::LimbEnum::LF_LEG).z()<<std::endl;
-//        estimate_torque_lf_pub.publish(estimate_torque_lf);
-//        estimate_torque_rf_pub.publish(estimate_torque_rf);
-//        estimate_torque_rh_pub.publish(estimate_torque_rh);
-//        estimate_torque_lh_pub.publish(estimate_torque_lh);
+
         lock.unlock();
         loop_rate.sleep();
     }
@@ -260,4 +313,3 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-

@@ -10,6 +10,7 @@
 #include "geometry_msgs/WrenchStamped.h"
 #include <Eigen/Dense>
 #include <Eigen/Eigen>
+//#include "gmbd_observer.h"
 
 using namespace std;
 using namespace free_gait;
@@ -40,6 +41,13 @@ void rf_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
 void lh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
 void rh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
 void robot_phaseCB(const free_gait_msgs::RobotState::ConstPtr& msg);
+double p_c_lf,p_c_rf,p_c_lh,p_c_rh;
+double p_h_lf,p_h_rf,p_h_lh,p_h_rh;
+double p_f_lf,p_f_rf,p_f_lh,p_f_rh;
+double lf_height,rf_height,lh_height,rh_height;
+double lf_phase,rf_phase,lh_phase,rh_phase;
+Eigen::Matrix<double,4,1> x_state_pre;
+std_msgs::Float64MultiArray contact_prob;
 private:
     ros::NodeHandle nodeHandle_;
     std::shared_ptr<free_gait::State> robot_state_;
@@ -49,9 +57,6 @@ private:
     ros::Publisher contact_pro_pub;
     int s_phi;
     int s_phi_;
-    double p_c_lf,p_c_rf,p_c_lh,p_c_rh;
-    double p_h_lf,p_h_rf,p_h_lh,p_h_rh;
-    double p_f_lf,p_f_rf,p_f_lh,p_f_rh;
     double phase;
     double phase_;
     double mu_0;
@@ -68,7 +73,6 @@ private:
     double sigma_f;
     double h;
     double t_swing_,t_stance_;
-    Eigen::Matrix<double,4,1> x_state_pre;
     Eigen::Matrix<double,4,4> P_pre,Q_pre;
     Eigen::Matrix<double,8,4> H_mea;
     Eigen::Matrix<double,1,2> H_t;
@@ -78,7 +82,7 @@ private:
     int log_length_, log_index_;
     std::vector<free_gait::LimbEnum> limbs_;
     std::vector<free_gait::BranchEnum> branches_;
-    std_msgs::Float64MultiArray contact_prob;
+
 
 };
 #endif // CONTACT_ESTIMATION_H

@@ -93,14 +93,14 @@ target_link_libraries(${PROJECT_NAME}_library
 add_executable(${PROJECT_NAME}
   src/elevation_mapping_node.cpp
 )
-#add_executable(fused_map src/fused_map.cpp)
+add_executable(fused_map src/fused_map.cpp)
 #add_executable(get_vegetable src/get_vegetable.cpp)
 #target_link_libraries(get_vegetable
 #  ${catkin_LIBRARIES}
 #  )
-#target_link_libraries(fused_map
-#  ${catkin_LIBRARIES}
-#  )
+target_link_libraries(fused_map
+  ${catkin_LIBRARIES}
+  )
 target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_library
 )

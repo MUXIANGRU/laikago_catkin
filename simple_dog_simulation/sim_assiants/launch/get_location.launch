@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <param name="/lf_contact_topic" value="/legodom/estimate_torque_lf" /> 
+  <param name="/rf_contact_topic" value="/legodom/estimate_torque_rf" />
+  <param name="/rh_contact_topic" value="/legodom/estimate_torque_rh" />
+  <param name="/lh_contact_topic" value="/legodom/estimate_torque_lh" />
+  <param name="/FootContacts" value="/legodom/FootContacts" /> 
+
+
+
+
+  <node pkg="sim_assiants"
+    type="get_foot_localization"
+    name="get_foot_localization"
+    output="screen">
+  </node>
+
+
+</launch>

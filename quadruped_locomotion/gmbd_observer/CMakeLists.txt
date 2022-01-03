@@ -110,7 +110,7 @@ find_package(pinocchio REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}_library
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS free_gait_msgs kdl_parser quadruped_model roscpp rospy std_msgs
   free_gait_msgs
   free_gait_core
@@ -132,9 +132,14 @@ include_directories(
 ## Declare a C++ library
  add_library(${PROJECT_NAME}
    src/gmbd_observer.cpp
-   src/gmbd_observer_node.cpp
+   #src/gmbd_observer_node.cpp
    src/kalman_filter.cpp
+   src/lp_filter.cpp
+   src/contact_estimation.cpp
  )
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -146,6 +151,7 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/gmbd_observer_node.cpp)
 add_executable(gmbd_observer_node src/gmbd_observer_node.cpp)
 add_executable(contact_pro src/contact_estimation.cpp)
+
 target_link_libraries(gmbd_observer_node
     PUBLIC pinocchio::pinocchio
     ${PROJECT_NAME}
@@ -232,3 +238,12 @@ target_link_libraries(contact_pro
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

@@ -58,6 +58,7 @@ find_package(catkin REQUIRED
    FILES
    FootContact.msg
    FootContacts.msg
+   FootLocations.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -156,6 +157,7 @@ add_executable(pose_pub_node src/fake_pose_node.cpp)
 add_executable(joint_states_to_gazebo_controllers_node src/joint_states_to_gazebo_controllers.cpp)
 add_executable(bumper_sensor_filter_node src/bumper_sensor_filter.cpp)
 add_executable(joint_states_to_laikago_node src/joint_states_to_laikago.cpp)
+add_executable(get_foot_localization src/get_foot_localization.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -174,6 +176,9 @@ add_executable(joint_states_to_laikago_node src/joint_states_to_laikago.cpp)
    ${catkin_LIBRARIES}
  )
 target_link_libraries(bumper_sensor_filter_node
+  ${catkin_LIBRARIES}
+  )
+target_link_libraries(get_foot_localization
   ${catkin_LIBRARIES}
   )
 target_link_libraries(${PROJECT_NAME}_library

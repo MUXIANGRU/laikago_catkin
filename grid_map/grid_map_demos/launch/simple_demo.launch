@@ -1,5 +1,6 @@
 <launch>
   <!-- Launch the grid map simple demo node -->
+  <param name="/Pose_topic" value="/pose_pub_node/base_pose" />
   <node pkg="grid_map_demos" type="simple_demo" name="grid_map_simple_demo" output="screen" />
   <!-- Launch the grid map visualizer -->
   <node pkg="grid_map_visualization" type="grid_map_visualization" name="grid_map_visualization" output="screen">

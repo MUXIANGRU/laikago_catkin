@@ -10,6 +10,7 @@
 #include "sim_assiants/FootContacts.h"
 #include "fake_pose.h"
 
+
 namespace fake_pose {
 
 FakePose::FakePose(ros::NodeHandle& nodehandle)
@@ -26,8 +27,17 @@ FakePose::FakePose(ros::NodeHandle& nodehandle)
     nodeHandle_.param("/use_fake_pose",use_fake_pose,bool(false));
     if(use_fake_pose){
         modelStatesSub_ = nodeHandle_.subscribe("/gazebo/model_states", 1, &FakePose::modelStatesCallback, this);
+
+
     }else{
+        //MXR::NOTE: test pronto in gazebo
+
+        prontoImuSub_ = nodeHandle_.subscribe("/imu",1,&FakePose::prontoIMUCB,this);
+        prontoPositionSub_ = nodeHandle_.subscribe("/laikago/foot_odom",1,&FakePose::prontoPositionCB,this);
         prontoTwistSub_ = nodeHandle_.subscribe("/laikago_state/twist",1,&FakePose::prontoTwistCB,this);
+        realContactSub_ = nodeHandle_.subscribe("/contact_pro",1,&FakePose::prontoCB,this);
+
+        //modelStatesSub_ = nodeHandle_.subscribe("/gazebo/model_states", 1, &FakePose::modelStatesCallback, this);
     }
 
 
@@ -36,10 +46,9 @@ FakePose::FakePose(ros::NodeHandle& nodehandle)
     fakePosePub_ = nodeHandle_.advertise<geometry_msgs::PoseWithCovarianceStamped>("base_pose", 1);
     robot_state_pub_ = nodeHandle_.advertise<free_gait_msgs::RobotState>("/gazebo/robot_states", 1);
     gazebo_pub = nodeHandle_.advertise<nav_msgs::Odometry>("/gazebo/odom",1);
+    euler_pub_ = nodeHandle_.advertise<geometry_msgs::Vector3Stamped>("/gazebo/euler",1);
 
-    //MXR::NOTE: test pronto in gazebo
-    prontoImuSub_ = nodeHandle_.subscribe("/imu",1,&FakePose::prontoIMUCB,this);
-    prontoPositionSub_ = nodeHandle_.subscribe("/laikago_pronto/foot_odom",1,&FakePose::prontoPositionCB,this);
+
 
     robot_state_.lf_leg_joints.name.resize(3);
     robot_state_.lf_leg_joints.position.resize(3);
@@ -70,7 +79,12 @@ FakePose::FakePose(ros::NodeHandle& nodehandle)
 }
 
 FakePose::~FakePose(){};
-
+void FakePose::prontoCB(const std_msgs::Float64MultiArray::ConstPtr &msg){
+    robot_state_.lf_leg_mode.support_leg = msg->data[0]>0.8?1:0;
+    robot_state_.rf_leg_mode.support_leg = msg->data[1]>0.8?1:0;
+    robot_state_.rh_leg_mode.support_leg = msg->data[2]>0.8?1:0;
+    robot_state_.lh_leg_mode.support_leg = msg->data[3]>0.8?1:0;
+}
 void FakePose::jointStatesCallback(const sensor_msgs::JointState::ConstPtr& joint_states)
 {
   gazebo_time = joint_states->header.stamp;
@@ -153,10 +167,10 @@ void FakePose::footContactsCallback(const sim_assiants::FootContacts::ConstPtr& 
 void FakePose::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& modelStatesMsg)
 {
     ROS_INFO("Recieved a model states");
-//    geometry_msgs::Pose base_pose = *(modelStatesMsg->pose.end());
-//    geometry_msgs::Twist base_twist =*(modelStatesMsg->twist.end());
-      geometry_msgs::Pose base_pose = modelStatesMsg->pose[10];  //10 27 158
-      geometry_msgs::Twist base_twist =modelStatesMsg->twist[10];  //10 27 158
+//      geometry_msgs::Pose base_pose = *(modelStatesMsg->pose.end());
+//      geometry_msgs::Twist base_twist =*(modelStatesMsg->twist.end());
+      geometry_msgs::Pose base_pose = modelStatesMsg->pose[54];  //10 27 158
+      geometry_msgs::Twist base_twist =modelStatesMsg->twist[54];  //10 27 158 55
       std::cout<<modelStatesMsg->name[10]<<std::endl;
       base_twist.linear.x *= real_time_factor;
       base_twist.linear.y *= real_time_factor;
@@ -165,7 +179,7 @@ void FakePose::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& mod
       base_twist.angular.y *= real_time_factor;
       base_twist.angular.z *= real_time_factor;
 
-    //fakePoseMsg_.header.stamp = gazebo_time;   //MXR::NOTE:will cause elevation_map error
+    fakePoseMsg_.header.stamp = gazebo_time;   //MXR::NOTE:will cause elevation_map error
     fakePoseMsg_.pose.pose = base_pose;
     fakePoseMsg_.pose.covariance[0]=0.001;
     fakePoseMsg_.pose.covariance[7]=0.001;
@@ -197,6 +211,11 @@ void FakePose::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& mod
 
     double yaw, pitch, roll;
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    /////////////////////////
+    euler.vector.x = roll;
+    euler.vector.y = pitch;
+    euler.vector.z = yaw;
+    /////////////////////////
     odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
     odom_to_footprint.setOrigin(tf::Vector3(base_pose.position.x,
                                 base_pose.position.y,
@@ -209,7 +228,7 @@ void FakePose::modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& mod
 
 //    tfBoardcaster_.sendTransform(tf::StampedTransform(odom2base, ros::Time::now(), "/odom", "/base_link"));
 //    fakePosePub_.publish(fakePoseMsg_);
-    // ros::Duration(0.01).sleep();
+//     ros::Duration(0.01).sleep();
 }
 
 void FakePose::prontoIMUCB(const sensor_msgs::Imu::ConstPtr &msg){
@@ -231,13 +250,22 @@ void FakePose::prontoPositionCB(const geometry_msgs::PoseWithCovarianceStamped::
 
 void FakePose::prontoTwistCB(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr &msg){
         ROS_INFO("Recieved a model states from pronto!!!");
-        prontoTwist_.twist.twist.linear.x = msg->twist.twist.linear.x*real_time_factor;
-        prontoTwist_.twist.twist.linear.y = msg->twist.twist.linear.y*real_time_factor;
-        prontoTwist_.twist.twist.linear.z = msg->twist.twist.linear.z*real_time_factor;
+        prontoTwist_.twist.twist.linear.x = real_time_factor*msg->twist.twist.linear.x;
+        prontoTwist_.twist.twist.linear.y = real_time_factor*msg->twist.twist.linear.y;
+        prontoTwist_.twist.twist.linear.z = real_time_factor*msg->twist.twist.linear.z;
         robot_state_.base_pose.pose = prontoMsg_.pose;
         robot_state_.base_pose.child_frame_id = "/base";
         robot_state_.base_pose.twist.twist = prontoTwist_.twist.twist;
         robot_state_.base_pose.header.frame_id = "/odom";
+
+        fakePoseMsg_.header.stamp = gazebo_time;   //MXR::NOTE:will cause elevation_map error
+        fakePoseMsg_.pose.pose = prontoMsg_.pose.pose;
+        fakePoseMsg_.pose.covariance[0]=0.001;
+        fakePoseMsg_.pose.covariance[7]=0.001;
+        fakePoseMsg_.pose.covariance[14]=0.001;
+        fakePoseMsg_.pose.covariance[21]=0.001;
+        fakePoseMsg_.pose.covariance[28]=0.001;
+        fakePoseMsg_.pose.covariance[35]=0.001;
 
         q.setW(prontoMsg_.pose.pose.orientation.w);
         q.setX(prontoMsg_.pose.pose.orientation.x);
@@ -263,7 +291,7 @@ void FakePose::prontoTwistCB(const geometry_msgs::TwistWithCovarianceStamped::Co
 void FakePose::modelStatesSubLoopThread()
 {
     static const double timeout = 0.02;
-    ros::Rate rate(100);
+    ros::Rate rate(400);
     while(nodeHandle_.ok())
     {
         boost::recursive_mutex::scoped_lock lock(r_mutex_);
@@ -276,6 +304,7 @@ void FakePose::modelStatesSubLoopThread()
         tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, gazebo_time, "/foot_print", "/base"));
         fakePosePub_.publish(fakePoseMsg_);
         gazebo_pub.publish(gazeboPoseMsg);
+        euler_pub_.publish(euler);
         lock.unlock();
         ROS_INFO("in test thread");
 

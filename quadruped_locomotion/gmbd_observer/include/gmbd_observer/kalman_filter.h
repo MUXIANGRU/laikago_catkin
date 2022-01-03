@@ -1,6 +1,7 @@
 #ifndef KALMAN_FILTER_H
 #define KALMAN_FILTER_H
 #include "Eigen/Dense"
+#include "gmbd_observer/gmbd_observer.h"
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;

@@ -2,10 +2,10 @@
 
 <launch>
   <arg name="folder_path"            default="$(find grid_map_pcl)/data"/>
-  <arg name="pcd_filename"           default="plane_noisy.pcd" />
+  <arg name="pcd_filename"           default="campus.pcd" />
   <arg name="map_rosbag_topic"       default="grid_map" />
   <arg name="output_grid_map"        default="elevation_map.bag" />
-  <arg name="map_frame"              default="map" />
+  <arg name="map_frame"              default="odom" />
   <arg name="map_layer_name"         default="elevation" />
   <arg name="prefix"                 default=""/>
   <arg name="set_verbosity_to_debug" default="false"/>

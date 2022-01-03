@@ -28,7 +28,7 @@ LocalAngularVelocity QuadrupedState::base_feedback_angular_velocity_, QuadrupedS
 
 QuadrupedState::QuadrupedState()
   : QuadrupedKinematics(),
-    robot_mass_(13.373),
+    robot_mass_(13.733),
     CoM_in_base_(Position(0.0,0,0))
 {
 //  QuadrupedKinematics::LoadRobotDescriptionFromFile("/home/hitstar/catkin_ws/src/quadruped_locomotion-dev/quadruped_model/urdf/simpledog.urdf");

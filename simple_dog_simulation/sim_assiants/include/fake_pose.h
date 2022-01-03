@@ -15,6 +15,7 @@
 #include "nav_msgs/Odometry.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TwistWithCovarianceStamped.h"
+#include "std_msgs/Float64MultiArray.h"
 
 namespace fake_pose {
 
@@ -38,6 +39,7 @@ public:
      * @param modelStates is a gazebo message containing position and orientation.
      */
     void modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& modelStatesMsg);
+    void prontoCB(const std_msgs::Float64MultiArray::ConstPtr& msg);
 
     void jointStatesCallback(const sensor_msgs::JointState::ConstPtr& joint_states);
 
@@ -54,7 +56,7 @@ private:
     ros::NodeHandle& nodeHandle_;
 
     //! ROS subscriber
-    ros::Subscriber modelStatesSub_, gazebo_joint_states_sub_, footContactsSub_;
+    ros::Subscriber modelStatesSub_, gazebo_joint_states_sub_, footContactsSub_,realContactSub_;
     ros::Subscriber prontoPositionSub_,prontoImuSub_,prontoTwistSub_;
 
     geometry_msgs::PoseWithCovarianceStamped prontoMsg_;
@@ -64,7 +66,7 @@ private:
     //message_filters::Subscriber<gazebo_msgs::ModelStates> timeSeqSub_;
 
     //! ROS publisher
-    ros::Publisher fakePosePub_, robot_state_pub_, gazebo_pub;
+    ros::Publisher fakePosePub_, robot_state_pub_, gazebo_pub,euler_pub_;
 
     //! pose
     geometry_msgs::PoseWithCovarianceStamped fakePoseMsg_;
@@ -82,6 +84,7 @@ private:
     tf::Transform odom2base, odom_to_footprint, footprint_to_base;
     tf::Quaternion q;
     ros::Time gazebo_time;
+    geometry_msgs::Vector3Stamped euler;
     double real_time_factor;
     bool use_fake_pose;
 

@@ -49,6 +49,8 @@ rqt_control_panel_plugin_widget::rqt_control_panel_plugin_widget(const ros::Node
   jointEffortCommandPublisher_ = nodehandle_.advertise<std_msgs::Float64MultiArray>("/all_joints_effort_group_controller/command", 1);
 
   jointStateSubscriber_ = nodehandle_.subscribe("/joint_states", 1, &rqt_control_panel_plugin_widget::jointStateCallback, this);
+  velocity_crash=false;
+  count_crash=0;
 
 }
 
@@ -69,11 +71,98 @@ void rqt_control_panel_plugin_widget::jointStateCallback(const sensor_msgs::Join
   joint_states_.position = joint_state->position;
   joint_states_.velocity = joint_state->velocity;
   joint_states_.effort = joint_state->effort;
+  bool first_crash,second_crash,third_crash;
+  if(std::abs(joint_states_.velocity[0])>5.0&&std::abs(joint_states_.velocity[3])>5.0&&std::abs(joint_states_.velocity[6])>5.0&&std::abs(joint_states_.velocity[9])>5.0){
+      first_crash=true;
+  }else{
+      first_crash=false;
+  }
+  if(std::abs(joint_states_.velocity[1])>10.0&&std::abs(joint_states_.velocity[4])>10.0&&std::abs(joint_states_.velocity[7])>10.0&&std::abs(joint_states_.velocity[10])>10.0){
+      second_crash=true;
+  }else{
+      second_crash=false;
+  }
+  if(std::abs(joint_states_.velocity[2])>25.0&&std::abs(joint_states_.velocity[5])>25.0&&std::abs(joint_states_.velocity[8])>25.0&&std::abs(joint_states_.velocity[11])>25.0){
+      third_crash=true;
+  }else{
+      third_crash=false;
+  }
+
+  if(first_crash||second_crash||third_crash){
+      velocity_crash=true;
+  }
+//  if(velocity_crash&&count_crash==0){
+//      controller_manager_msgs::ListControllers list_controllers;
+//      listControllerClient_.call(list_controllers.request, list_controllers.response);
+//      std::string current_controller,tab_name;
+//      for(auto& controller:list_controllers.response.controller)
+//        {
+//          if(controller.name == "all_joints_position_group_controller" && controller.state =="running")
+//            {
+//              current_controller = "all_joints_position_group_controller";
+//              break;
+//            }
+//          if(controller.name == "all_joints_velocity_group_controller" && controller.state =="running")
+//            {
+//              current_controller = "all_joints_velocity_group_controller";
+//              break;
+//            }
+//          if(controller.name == "all_joints_effort_group_controller" && controller.state =="running")
+//            {
+//              current_controller = "all_joints_effort_group_controller";
+//              break;
+//            }
+//          if(controller.name == "all_joints_position_effort_group_controller" && controller.state =="running")
+//            {
+//              current_controller = "all_joints_position_effort_group_controller";
+//              break;
+//            }
+//          if(controller.name == "base_balance_controller" && controller.state =="running")
+//            {
+//              current_controller = "base_balance_controller";
+//              break;
+//            }
+//          if(controller.name == "single_leg_controller" && controller.state =="running")
+//            {
+//              current_controller = "single_leg_controller";
+//              break;
+//            }
+
+//        }
+//      controller_manager_msgs::SwitchController controller_switch;
+//      free_gait_msgs::SetLimbConfigure control_method;
+//      std_msgs::Bool e_stop_msg;
+//      e_stop_msg.data = true;
+//      tab_name = "Joint Position";
+
+//      std::cout<<"Joint Position"<<std::endl;
+//      eStopPublisher_.publish(e_stop_msg);
+//      controller_switch.request.start_controllers.push_back("all_joints_position_group_controller");
+//      controller_switch.request.stop_controllers.push_back(current_controller.c_str());
+//      controller_switch.request.strictness = controller_switch.request.STRICT;
+//      switchControllerClient_.call(controller_switch.request, controller_switch.response);
+//      my_switchControllerClient_.call(controller_switch.request, controller_switch.response);
+
+//      control_method.request.configure = tab_name;
+//      switchControlMethodClient_.call(control_method.request, control_method.response);
+
+//      if(controller_switch.response.ok && control_method.response.result)
+//        {
+//          control_method_ = JOINT_POSITION;
+//          displayOutputInfos("green", "Switch to Joint Position Controller");
+//        }
+//      updateJointState();
+//      count_crash++;
+//  }
+//  std::cout<<"-------------------------------"<<std::endl;
+//  std::cout<<"velocity_crash     "<<velocity_crash<<std::endl;
+//  std::cout<<"-------------------------------"<<std::endl;
 
 }
 
 bool rqt_control_panel_plugin_widget::updateJointState()
 {
+
   int tab_index = ui->Controllers->currentIndex();
   switch (tab_index) {
     case 1: //joint position
@@ -523,19 +612,19 @@ void rqt_control_panel_plugin_widget::on_resetJointPostionButton_clicked()
 {
   ui->lf_joint_positon_1->setValue(0);
   ui->lf_joint_positon_2->setValue(0.67);
-  ui->lf_joint_positon_3->setValue(-1.3);
+  ui->lf_joint_positon_3->setValue(-1.36);
 
   ui->rf_joint_positon_1->setValue(0);
   ui->rf_joint_positon_2->setValue(0.67);
-  ui->rf_joint_positon_3->setValue(-1.3);
+  ui->rf_joint_positon_3->setValue(-1.36);
 
   ui->rh_joint_positon_1->setValue(0);
   ui->rh_joint_positon_2->setValue(0.67);
-  ui->rh_joint_positon_3->setValue(-1.3);
+  ui->rh_joint_positon_3->setValue(-1.36);
 
   ui->lh_joint_positon_1->setValue(0);
   ui->lh_joint_positon_2->setValue(0.67);
-  ui->lh_joint_positon_3->setValue(-1.3);
+  ui->lh_joint_positon_3->setValue(-1.36);
 
 
 }

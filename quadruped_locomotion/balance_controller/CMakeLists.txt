@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 project(balance_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
- add_compile_options(-std=c++11)
-
+add_compile_options(-std=c++11)
+add_definitions("-DBOOST_MPL_LIMIT_LIST_SIZE=30")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -29,11 +29,12 @@ find_package(catkin REQUIRED COMPONENTS
   sim_assiants
   ooqp_eigen_interface
   single_leg_test
-  ros_ethercat_driver
+#  ros_ethercat_driver
   dynamic_reconfigure
   laikago_msgs
   laikago_ros_control
 )
+find_package(pinocchio REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -206,6 +207,10 @@ add_library(state_estimate_controller
 target_link_libraries(state_estimate_controller
   ${catkin_LIBRARIES}
   )
+add_library(path_tracking_controller
+    src/ros_controller/path_tracking_controller.cpp)
+target_link_libraries(path_tracking_controller
+  ${catkin_LIBRARIES})
 add_library(laikago_joint_test_controller
   src/ros_controller/laikago_joint_controller.cpp
   )
@@ -234,8 +239,8 @@ target_link_libraries(laikago_joint_test_controller
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/balance_controller_node.cpp)
-add_executable(balance_controller_test_node test/test.cpp)
-add_executable(balance_controller_manager src/ros_controller/balance_controller_manager.cpp)
+#add_executable(balance_controller_test_node test/test.cpp)
+#add_executable(balance_controller_manager src/ros_controller/balance_controller_manager.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -250,16 +255,16 @@ add_executable(balance_controller_manager src/ros_controller/balance_controller_
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(balance_controller_test_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${EXTRA_LIBS}
-  )
-target_link_libraries(balance_controller_manager
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${EXTRA_LIBS}
-  )
+#target_link_libraries(balance_controller_test_node
+#  ${PROJECT_NAME}
+#  ${catkin_LIBRARIES}
+#  ${EXTRA_LIBS}
+#  )
+#target_link_libraries(balance_controller_manager
+#  ${PROJECT_NAME}
+#  ${catkin_LIBRARIES}
+#  ${EXTRA_LIBS}
+#  )
 
 #############
 ## Install ##

@@ -5,73 +5,77 @@ adapt_coordinates:
 
 steps:
   - step:
-    - base_auto:
-       height: 0.38
-       ignore_timing_of_leg_motion: true
-       average_linear_velocity: 0.15
-       average_angular_velocity: 0.2
-       support_margin: 0.03
+    - base_target:
+        ignore_timing_of_leg_motion: false
+        average_linear_velocity: 0.02
+        average_angular_velocity: 0.02
+        target:
+          frame: foot_print
+          position: [-0.03,-0.03,0.42]
+          orientation: [0.0,0.0,0.0,1.0]
   - step:
     - footstep:
         name: LF_LEG
-        profile_type: square
-        profile_height: 0.13
-        average_velocity: 0.3
+        profile_type: triangle
+        profile_height: 0.08
+        average_velocity: 0.2
         target:
           frame: foot_print
-          position: [0.25, 0.15, -0.02]
+          position: [0.26, 0.15, -0.02]
   - step:
     - base_auto:
-       height: 0.38
-       ignore_timing_of_leg_motion: true
-       average_linear_velocity: 0.15
-       average_angular_velocity: 0.2
-       support_margin: 0.03
+       height: 0.42
+       ignore_timing_of_leg_motion: false
+       average_linear_velocity: 0.02
+       average_angular_velocity: 0.02
+       support_margin: 0.10
   - step:
     - footstep:
         name: RH_LEG
-        profile_type: square
-        profile_height: 0.13
-        average_velocity: 0.3
+        profile_type: triangle
+        profile_height: 0.08
+        average_velocity: 0.2
         target:
           frame: foot_print
-          position: [-0.25, -0.15, -0.02]
+          position: [-0.18, -0.15, -0.02]
   - step:
-    - base_auto:
-       height: 0.38
-       ignore_timing_of_leg_motion: true
-       average_linear_velocity: 0.15
-       average_angular_velocity: 0.2
-       support_margin: 0.03
+    - base_target:
+        ignore_timing_of_leg_motion: false
+        average_linear_velocity: 0.02
+        average_angular_velocity: 0.02
+        target:
+          frame: foot_print
+          position: [-0.03,0.03,0.42]
+          orientation: [0.0,0.0,0.0,1.0]
   - step:
     - footstep:
         name: RF_LEG
-        profile_type: square
-        profile_height: 0.13
-        average_velocity: 0.3
+        profile_type: triangle
+        profile_height: 0.08
+        average_velocity: 0.2
         target:
           frame: foot_print
-          position: [0.25, -0.15, -0.02]
+          position: [0.26, -0.15, -0.02]
   - step:
     - base_auto:
-       height: 0.38
-       ignore_timing_of_leg_motion: true
-       average_linear_velocity: 0.15
-       average_angular_velocity: 0.2
-       support_margin: 0.03
+       height: 0.42
+       ignore_timing_of_leg_motion: false
+       average_linear_velocity: 0.02
+       average_angular_velocity: 0.02
+       support_margin: 0.10
   - step:
     - footstep:
         name: LH_LEG
-        profile_type: square
-        profile_height: 0.13
-        average_velocity: 0.3
+        profile_type: triangle
+        profile_height: 0.08
+        average_velocity: 0.2
         target:
           frame: foot_print
-          position: [-0.25, 0.15, -0.02]
+          position: [-0.18, 0.15, -0.02]
   - step:
     - base_auto:
-       height: 0.38
-       ignore_timing_of_leg_motion: true
-       average_linear_velocity: 0.15
-       average_angular_velocity: 0.2
+       height: 0.42
+       ignore_timing_of_leg_motion: false
+       average_linear_velocity: 0.05
+       average_angular_velocity: 0.05
        support_margin: 0.03

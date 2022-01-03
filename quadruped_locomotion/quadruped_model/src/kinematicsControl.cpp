@@ -49,12 +49,12 @@ int main(int argc, char **argv)
     joint_state.name[0] = "LF_HAA";
     joint_state.name[1] = "LF_HFE";
     joint_state.name[2] = "LF_KFE";
-    joint_state.name[3] = "RF_HAA";
-    joint_state.name[4] = "RF_HFE";
-    joint_state.name[5] = "RF_KFE";
-    joint_state.name[6] = "LH_HAA";
-    joint_state.name[7] = "LH_HFE";
-    joint_state.name[8] = "LH_KFE";
+    joint_state.name[6] = "RF_HAA";
+    joint_state.name[7] = "RF_HFE";
+    joint_state.name[8] = "RF_KFE";
+    joint_state.name[3] = "LH_HAA";
+    joint_state.name[4] = "LH_HFE";
+    joint_state.name[5] = "LH_KFE";
     joint_state.name[9] = "RH_HAA";
     joint_state.name[10] = "RH_HFE";
     joint_state.name[11] = "RH_KFE";
@@ -77,10 +77,10 @@ int main(int argc, char **argv)
 //            >> joint_position_file(11);
         readfile >> time >> joint_position_file(0) >> joint_position_file(1)>> joint_position_file(2)
             >> joint_position_file(3)>> joint_position_file(4)
-            >> joint_position_file(5)>> joint_position_file(6)
-            >> joint_position_file(7)>> joint_position_file(8)
-            >> joint_position_file(9)>> joint_position_file(10)
-            >> joint_position_file(11);
+            >> joint_position_file(5)>> joint_position_file(9)
+            >> joint_position_file(10)>> joint_position_file(11)
+            >> joint_position_file(6)>> joint_position_file(7)
+            >> joint_position_file(8);
         joint_position_collection.push_back(joint_position_file);
     }
     readfile.close();

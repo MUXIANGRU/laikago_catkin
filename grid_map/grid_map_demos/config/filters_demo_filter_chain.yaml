@@ -22,7 +22,7 @@ grid_map_filters:
     params:
       input_layer: elevation
       output_layer: elevation_inpainted
-      radius: 0.05
+      radius: 0.66
 
   # Reduce noise with a radial blurring filter.
   - name: mean_in_radius
@@ -30,7 +30,7 @@ grid_map_filters:
     params:
       input_layer: elevation_inpainted
       output_layer: elevation_smooth
-      radius: 0.06
+      radius: 1.0
 
   # Boxblur as an alternative to the inpaint and radial blurring filter above.
   # - name: boxblur
@@ -49,7 +49,7 @@ grid_map_filters:
     params:
       input_layer: elevation_inpainted
       output_layers_prefix: normal_vectors_
-      radius: 0.05
+      radius: 1.0
       normal_vector_positive_axis: z
 
   # Add a color layer for visualization based on the surface normal.

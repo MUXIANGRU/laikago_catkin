@@ -43,6 +43,7 @@ private:
    */
   void leftFrontFootBumperCallback(const gazebo_msgs::ContactsStateConstPtr& contact_state){
     lf_wrench_.header.frame_id = "LF_FOOT";
+    lf_wrench_.header.stamp = contact_state->header.stamp;
     if(!contact_state->states.empty())
       {
         // if has contact, there same data in states array, just get the first
@@ -68,12 +69,14 @@ private:
     lf_foot_contact_.contact_force.header = lf_wrench_.header;
     lf_foot_contact_.contact_force.wrench = lf_wrench_.wrench;
     foot_contacts_.foot_contacts[0] = lf_foot_contact_;
+    foot_contacts_.foot_contacts[0].contact_position.header.stamp = lf_wrench_.header.stamp;
 
   }
 
   void rightFrontFootBumperCallback(const gazebo_msgs::ContactsStateConstPtr& contact_state)
   {
     rf_wrench_.header.frame_id = "RF_FOOT";
+    rf_wrench_.header.stamp = contact_state->header.stamp;
     if(!contact_state->states.empty())
       {
         rf_wrench_.wrench.force = contact_state->states[0].total_wrench.force;
@@ -97,11 +100,13 @@ private:
       }
     rf_foot_contact_.contact_force = rf_wrench_;
     foot_contacts_.foot_contacts[1] = rf_foot_contact_;
+    foot_contacts_.foot_contacts[1].contact_position.header.stamp = rf_wrench_.header.stamp;
 
   }
   void rightHindFootBumperCallback(const gazebo_msgs::ContactsStateConstPtr& contact_state)
   {
     rh_wrench_.header.frame_id = "RH_FOOT";
+    rh_wrench_.header.stamp = contact_state->header.stamp;
     if(!contact_state->states.empty())
       {
         rh_wrench_.wrench.force = contact_state->states[0].total_wrench.force;
@@ -125,10 +130,12 @@ private:
       }
     rh_foot_contact_.contact_force = rh_wrench_;
     foot_contacts_.foot_contacts[2] = rh_foot_contact_;
+    foot_contacts_.foot_contacts[2].contact_position.header.stamp = rh_wrench_.header.stamp;
   }
   void leftHindFootBumperCallback(const gazebo_msgs::ContactsStateConstPtr& contact_state)
   {
     lh_wrench_.header.frame_id = "LH_FOOT";
+    lh_wrench_.header.stamp = contact_state->header.stamp;
     if(!contact_state->states.empty())
       {
         lh_wrench_.wrench.force = contact_state->states[0].total_wrench.force;
@@ -152,6 +159,7 @@ private:
       }
     lh_foot_contact_.contact_force = lh_wrench_;
     foot_contacts_.foot_contacts[3] = lh_foot_contact_;
+    foot_contacts_.foot_contacts[3].contact_position.header.stamp = lh_wrench_.header.stamp;
   }
   /**
    * @brief wrenchPublishThreadFunction

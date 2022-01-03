@@ -20,6 +20,9 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   octomap_msgs
   filters
+  std_msgs
+  message_generation
+  elevation_mapping
 )
 
 find_package(OpenCV REQUIRED
@@ -42,8 +45,22 @@ find_package(octomap REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS
+#  CATKIN_DEPENDS
 #  DEPENDS system_lib
+  LIBRARIES
+  ${PROJECT_NAME}_library
+  CATKIN_DEPENDS
+  roscpp
+  geometry_msgs
+  message_runtime
+  std_msgs
+  tf
+  elevation_mapping
+  #free_gait_msgs
+  gazebo_msgs
+  sim_assiants
+  DEPENDS
+  Boost
 )
 
 ###########
@@ -52,6 +69,8 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
+include_directories("/home/mxr/catkin_gpr/src/limbo/src/")
+include_directories("/home/mxr/catkin_gpr/src/gaussian-process-regression/include/")
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}

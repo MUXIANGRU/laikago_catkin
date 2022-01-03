@@ -9,7 +9,7 @@
  */
 
 #include "balance_controller/ros_controler/gazebo_state_hardware_interface.hpp"
-
+#include <iostream>
 namespace
 {
 
@@ -25,14 +25,58 @@ namespace balance_controller
 
 SimRobotStateHardwareInterface::SimRobotStateHardwareInterface()
 {
-
+//    pre[0]=0;
+//    pre[1]=0;
+//    pre[2]=0;
+//    linear_vel[0]=0;
+//    linear_vel[1]=0;
+//    linear_vel[2]=0;
+    pose_sub = node_handle_.subscribe("/laikago/foot_odom",1, &SimRobotStateHardwareInterface::poseCB,this);
+    vel_sub = node_handle_.subscribe("/laikago_state/twist",1, &SimRobotStateHardwareInterface::velCB,this);
 }
 
 SimRobotStateHardwareInterface::~SimRobotStateHardwareInterface()
 {
 
 }
+void SimRobotStateHardwareInterface::poseCB(const geometry_msgs::PoseWithCovarianceStampedConstPtr &msg){
+//    robot_state_data_.position[0] = msg->pose.pose.position.x;
+//    robot_state_data_.position[1] = msg->pose.pose.position.y;
+//    robot_state_data_.position[2] = msg->pose.pose.position.z;
+}
+void SimRobotStateHardwareInterface::velCB(const geometry_msgs::TwistWithCovarianceStampedConstPtr &msg){
+//    if(abs(pre[0]-msg->twist.twist.linear.x)>0.2) robot_state_data_.linear_velocity[0]=pre[0];
+//    else{
+//        robot_state_data_.linear_velocity[0] = msg->twist.twist.linear.x*0.5+pre[0]*0.5;
+//    }
+//    if(abs(pre[1]-msg->twist.twist.linear.y)>0.2) robot_state_data_.linear_velocity[1]=pre[1];
+//    else{
+//        robot_state_data_.linear_velocity[1] = msg->twist.twist.linear.y*0.5+pre[1]*0.5;
+//    }
+//    if(abs(pre[2]-msg->twist.twist.linear.z)>0.2) robot_state_data_.linear_velocity[2]=pre[2];
+//    else{
+//        robot_state_data_.linear_velocity[2] = msg->twist.twist.linear.z*0.5+pre[2]*0.5;
+//    }
 
+//    robot_state_data_.linear_velocity[0] = real_time_factor*msg->twist.twist.linear.x;
+//    robot_state_data_.linear_velocity[1] = real_time_factor*msg->twist.twist.linear.y;
+//    robot_state_data_.linear_velocity[2] = real_time_factor*msg->twist.twist.linear.z;
+    //if(abs(pre[0]-robot_state_data_.linear_velocity[0])>1)
+    //double x=1/robot_state_data_.linear_velocity[0];
+//    robot_state_data_.linear_velocity[0] =real_time_factor*(0.8*msg->twist.twist.linear.x+0.2*pre[0]);
+//    robot_state_data_.linear_velocity[1] =real_time_factor*(0.8*msg->twist.twist.linear.y+0.2*pre[1]);
+//    robot_state_data_.linear_velocity[2] =real_time_factor*(0.8*msg->twist.twist.linear.z+0.2*pre[2]);
+//////    std::cout<<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"<<std::endl;
+//////    std::cout<<"[0]  "<<pre[0]<<std::endl;
+//////    std::cout<<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"<<std::endl;
+//////    vel_glx[0] = real_time_factor*msg->twist.linear.x;
+//////    vel_glx[1] = real_time_factor*msg->twist.linear.y;
+//////    vel_glx[2] = real_time_factor*msg->twist.linear.z;
+//    pre[0]=robot_state_data_.linear_velocity[0];
+//    pre[1]=robot_state_data_.linear_velocity[1];
+//    pre[2]=robot_state_data_.linear_velocity[2];
+
+}
 bool SimRobotStateHardwareInterface::initSim(
   const std::string& robot_namespace,
   ros::NodeHandle model_nh,
@@ -292,7 +336,6 @@ bool SimRobotStateHardwareInterface::initSim(
   ROS_WARN("Init Gazebo hardware interface");
   return true;
 }
-
 void SimRobotStateHardwareInterface::readSim(ros::Time time, ros::Duration period)
 {
 //  double real_time_factor = base_link_ptr_->GetParentModel()->GetWorld()->GetPhysicsEngine()->GetTargetRealTimeFactor();
@@ -332,23 +375,30 @@ void SimRobotStateHardwareInterface::readSim(ros::Time time, ros::Duration perio
   //  double real_time_factor = base_link_ptr_->GetParentModel()->GetWorld()->GetPhysicsEngine()->GetTargetRealTimeFactor();
 if(use_gazebo_feedback)
   {
-    robot_state_data_.position[0] = base_link_ptr_->GetWorldCoGPose().pos.x;
-    robot_state_data_.position[1] = base_link_ptr_->GetWorldCoGPose().pos.y;
-    robot_state_data_.position[2] = base_link_ptr_->GetWorldCoGPose().pos.z;
+
+
+
+
 //      ROS_INFO("Base position: x=%f,y=%f,z=%f",robot_state_data_.position[0],
 //          robot_state_data_.position[1],robot_state_data_.position[2]);
-    robot_state_data_.orientation[0] = base_link_ptr_->GetWorldCoGPose().rot.w;
-    robot_state_data_.orientation[1] = base_link_ptr_->GetWorldCoGPose().rot.x;
-    robot_state_data_.orientation[2] = base_link_ptr_->GetWorldCoGPose().rot.y;
-    robot_state_data_.orientation[3] = base_link_ptr_->GetWorldCoGPose().rot.z;
 
-    robot_state_data_.linear_velocity[0] = real_time_factor * base_link_ptr_->GetWorldLinearVel().x;
-    robot_state_data_.linear_velocity[1] = real_time_factor * base_link_ptr_->GetWorldLinearVel().y;
-    robot_state_data_.linear_velocity[2] = real_time_factor * base_link_ptr_->GetWorldLinearVel().z;
     //  ROS_INFO("Base linear velocity: x=%f,y=%f,z=%f",robot_state_data_.linear_velocity[0],
     //      robot_state_data_.linear_velocity[1],robot_state_data_.linear_velocity[2]);
 
   }
+//robot_state_data_.linear_velocity[0] = vel_glx[0];
+//robot_state_data_.linear_velocity[1] = vel_glx[1];
+//robot_state_data_.linear_velocity[2] = vel_glx[2];
+robot_state_data_.position[0] = base_link_ptr_->GetWorldCoGPose().pos.x;
+robot_state_data_.position[1] = base_link_ptr_->GetWorldCoGPose().pos.y;
+robot_state_data_.position[2] = base_link_ptr_->GetWorldCoGPose().pos.z;
+robot_state_data_.linear_velocity[0] = real_time_factor * base_link_ptr_->GetWorldLinearVel().x;
+robot_state_data_.linear_velocity[1] = real_time_factor * base_link_ptr_->GetWorldLinearVel().y;
+robot_state_data_.linear_velocity[2] = real_time_factor * base_link_ptr_->GetWorldLinearVel().z;
+robot_state_data_.orientation[0] = base_link_ptr_->GetWorldCoGPose().rot.w;
+robot_state_data_.orientation[1] = base_link_ptr_->GetWorldCoGPose().rot.x;
+robot_state_data_.orientation[2] = base_link_ptr_->GetWorldCoGPose().rot.y;
+robot_state_data_.orientation[3] = base_link_ptr_->GetWorldCoGPose().rot.z;
 robot_state_data_.angular_velocity[0] = real_time_factor * base_link_ptr_->GetWorldAngularVel().x;
 robot_state_data_.angular_velocity[1] = real_time_factor * base_link_ptr_->GetWorldAngularVel().y;
 robot_state_data_.angular_velocity[2] = real_time_factor * base_link_ptr_->GetWorldAngularVel().z;
@@ -394,6 +444,7 @@ void SimRobotStateHardwareInterface::writeSim(ros::Time time, ros::Duration peri
   vj_sat_interface_.enforceLimits(period);
   vj_limits_interface_.enforceLimits(period);
 
+  //std::cout<<joint_control_methods_[0]<<std::endl;
   for(unsigned int j=0; j < n_dof_; j++)
   {
     switch (joint_control_methods_[j])
@@ -406,6 +457,11 @@ void SimRobotStateHardwareInterface::writeSim(ros::Time time, ros::Duration peri
 //          joint_effort_command_[j] = robot_state_interface_.getHandle("base_controller").getJointEffortWrite()[j];
 //          ROS_INFO("Joint Torque of %d is %fN.m",j,joint_effort_command_[j]);
           double effort = e_stop_active_ ? 0 : joint_effort_command_[j];
+          if(effort>35.0){
+              effort=35.0;
+          }else if(effort<-35.0){
+              effort=-35.0;
+          }
           //std::cout<<j<<"  "<<joint_effort_command_[j]<<std::endl;
 //          effort = effort + 5*(rand() / double(RAND_MAX) -0.5);
 //          if(effort >= 100)

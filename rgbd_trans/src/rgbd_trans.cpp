@@ -19,12 +19,19 @@ typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 using namespace std;
 //namespace enc = sensor_msgs::image_encodings;
 
-// 相机内参
-const double camera_factor = 1;
-const double camera_cx = 320.5;
-const double camera_cy = 240.5;
-const double camera_fx = 554.5940455214144;
-const double camera_fy = 554.5940455214144;
+// gazebo相机内参
+//const double camera_factor = 1;
+//const double camera_cx = 320.5;
+//const double camera_cy = 240.5;
+//const double camera_fx = 554.5940455214144;
+//const double camera_fy = 554.5940455214144;
+
+// real相机内参
+const double camera_factor = 1000;
+const double camera_cx = 318.45159912109375;
+const double camera_cy = 239.72439575195312;
+const double camera_fx = 606.0950927734375;
+const double camera_fy = 605.3359375;
 string color_image_topic,depth_image_topic,camera_frame;
 // 全局变量：图像矩阵和点云
 cv_bridge::CvImagePtr color_ptr, depth_ptr;
@@ -97,20 +104,25 @@ int main(int argc, char **argv)
   cv::namedWindow("depth_view");
   cv::startWindowThread();
   image_transport::ImageTransport it(nh);
-  nh.param("/color_image_topic", color_image_topic, std::string("/front_camera/rgb/image_raw"));
-  nh.param("/depth_image_topic", depth_image_topic, std::string("/front_camera/depth/image_raw"));
-  nh.param("/camera_frame", camera_frame, std::string("front_camera_frame_optical"));
+//  nh.param("/color_image_topic", color_image_topic, std::string("/camera/image_raw"));
+//  nh.param("/depth_image_topic", depth_image_topic, std::string("/camera/depth/image_raw"));
+//  nh.param("/camera_frame", camera_frame, std::string("camera_frame_optical"));  //MXR::NOTE: for simulation!!!
+  nh.param("/color_image_topic", color_image_topic, std::string("/seg_result"));
+  nh.param("/depth_image_topic", depth_image_topic, std::string("/camera/aligned_depth_to_color/image_raw"));
+  nh.param("/camera_frame", camera_frame, std::string("camera_color_optical_frame"));
   image_transport::Subscriber sub = it.subscribe(color_image_topic, 1, color_Callback);
   image_transport::Subscriber sub1 = it.subscribe(depth_image_topic, 1, depth_Callback);
   ros::Publisher pointcloud_publisher = nh.advertise<sensor_msgs::PointCloud2>("generated_pc", 10);
-  timestamp_sub_ = nh.subscribe("/front_high_camera/depth/points",1,&stCB);
+  //timestamp_sub_ = nh.subscribe("/camera/depth/points",1,&stCB);
+  timestamp_sub_ = nh.subscribe("/camera/depth_registered/points",1,&stCB);
+
 
  // 点云变量
   // 使用智能指针，创建一个空点云。这种指针用完会自动释放。
   PointCloud::Ptr cloud ( new PointCloud );
   sensor_msgs::PointCloud2 pub_pointcloud;
 
-  double sample_rate = 10.0; // 1HZ，1秒发1次
+  double sample_rate = 1.0; // 1HZ，1秒发1次
   ros::Rate naptime(sample_rate); // use to regulate loop rate 
 
   cout<<"depth value of depth map : "<<endl;

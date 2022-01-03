@@ -111,6 +111,9 @@ private:
 
   bool updateJointState();
 
+  bool velocity_crash;
+  int count_crash;
+
   void jointStateCallback(const sensor_msgs::JointState::ConstPtr& joint_state);
 };
 

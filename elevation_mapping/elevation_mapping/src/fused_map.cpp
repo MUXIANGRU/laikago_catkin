@@ -22,7 +22,7 @@
 #include <cmath>
 
 using namespace grid_map;
-ros::Subscriber elevation_map_sub,grid_map_sub;
+ros::Subscriber elevation_map_sub,grid_map_sub,traversability_map_sub;
 ros::Publisher fused_pub;
 std::vector<double>  ave_power;
 //foot_position container
@@ -45,6 +45,7 @@ sensor_msgs::JointState joint_states;
 //map_guassian for foot_layer;map_elevation for vision_layer;map<==>fused map
 GridMap map_guassian({"elevation"});
 GridMap map_elevation;
+GridMap map_traversability;
 GridMap map({"final_fused","elevation_complete","foot_layer","foot_layer_variance","elevation_layer","vegetable_layer","vegetable_plane",
              "vegetable_layer_variance","compliance","cost_of_transport","final_cov"});
 
@@ -78,6 +79,14 @@ void elevationCB(const grid_map_msgs::GridMap &elevation_map){
 
 void gridmapCB(const grid_map_msgs::GridMap &grid_map){
     GridMapRosConverter::fromMessage(grid_map,map_guassian);
+//    ROS_WARN("FOOT_POSITION_MAP!!!!!!!!");
+//    std::cout<<map_guassian.getSize()<<std::endl;
+//    std::cout<<map_guassian.getLength()<<std::endl;
+//    std::cout<<map_guassian.getResolution()<<std::endl;
+    //std::cout<<map_guassian.getPosition().x()<<"   "<<map_guassian.getPosition().y()<<std::endl;
+}
+void traverCB(const grid_map_msgs::GridMap &grid_map){
+    GridMapRosConverter::fromMessage(grid_map,map_traversability);
 //    ROS_WARN("FOOT_POSITION_MAP!!!!!!!!");
 //    std::cout<<map_guassian.getSize()<<std::endl;
 //    std::cout<<map_guassian.getLength()<<std::endl;
@@ -133,12 +142,12 @@ void fpCB(const sim_assiants::FootLocationsConstPtr& foot_positions_ptr){
                 Eigen::VectorXd compliance_sample(2);
                 Eigen::VectorXd compliance_observation(1);
                 compliance_sample<<input_samples[k].x(),input_samples[k].y();
-                if(map_elevation.isValid(my_index)){
+                if(map_traversability.isValid(my_index)){
                     //compliance_observation<<input_compliance_observations[k]/( map_elevation.at("elevation",my_index) - map_guassian.at("elevation",my_index));
-                    compliance_observation<<( map_elevation.at("elevation",my_index) - map_guassian.at("elevation",my_index))/input_compliance_observations[k].x();
+                    compliance_observation<<( map_traversability.at("elevation_inpainted",my_index) - map_guassian.at("elevation",my_index));
                 }else{
                     //compliance_observation<<input_compliance_observations[k]/(input_observations[k].x() - map_guassian.at("elevation",my_index));
-                    compliance_observation<<(input_observations[k].x() - map_guassian.at("elevation",my_index))/input_compliance_observations[k].x();
+                    compliance_observation<<(input_observations[k].x() - map_guassian.at("elevation",my_index));
                 }
 
 
@@ -300,6 +309,7 @@ int main(int argc, char** argv)
 
   elevation_map_sub = nodeHandle.subscribe("/elevation_mapping/elevation_map_raw",1,&elevationCB);
   grid_map_sub = nodeHandle.subscribe("/grid_map_simple_demo/grid_map",1,&gridmapCB);
+  traversability_map_sub = nodeHandle.subscribe("/traversability_estimation/traversability_map",1,&traverCB);
   fused_pub = nodeHandle.advertise<grid_map_msgs::GridMap>("/fused_map",1,true);
   ros::Subscriber sub = nodeHandle.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/pose_pub_node/base_pose",1,poseCB);
   ros::Subscriber foot_locations_sub = nodeHandle.subscribe<sim_assiants::FootLocations>("/gazebo/foot_location",10,fpCB);
@@ -339,7 +349,7 @@ int main(int argc, char** argv)
         {
               std::vector<double> height_value=doGaussianProcessRegression(input_vegetable_samples,vegetable_observations,2,1,test_input_x,test_input_y);
               map.at("vegetable_layer",*it) = height_value[0];
-              map.at("vegetable_layer_variance",*it) = height_value[1]+point_variance;
+              map.at("vegetable_layer_variance",*it) = height_value[1]*point_variance/(height_value[1]+point_variance);
         }
         if(input_samples.size()>0)
         {

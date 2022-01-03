@@ -156,6 +156,10 @@ bool VirtualModelController::computeError()
    const RotationQuaternion& orientationControlToBase = robot_state_->getTargetOrientationBaseToWorld().inverted();//torso_->getMeasuredState().getOrientationControlToBase();
    positionErrorInControlFrame_ = robot_state_->getTargetPositionWorldToBaseInWorldFrame() //torso_->getDesiredState().getPositionControlToBaseInControlFrame()
        - robot_state_->getPositionWorldToBaseInWorldFrame();//torso_->getMeasuredState().getPositionControlToBaseInControlFrame();
+//   if(positionErrorInControlFrame_.z()>0.03){
+//       positionErrorInControlFrame_.z()/=10.0;
+//       cout<<"warning!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
+//   }
    //! WSHY: in base !!!
     kindr::RotationQuaternionD test;
     test.w() = robot_state_->getOrientationBaseToWorld().inverted().w();
@@ -295,6 +299,16 @@ bool VirtualModelController::computeVirtualForce()
                        + gravityCompensationForceInBaseFrame_
                        + gravityCompensationFeedbackInBaseFrame
                        + gravityDampingCompensationFeedbackInBaseFrame;
+//  if(virtualForceInBaseFrame_.y()>50){
+//      virtualForceInBaseFrame_.y()=50;
+//  }else if(virtualForceInBaseFrame_.y()<-60){
+//      virtualForceInBaseFrame_.y()=-60;
+//  }
+//  if(virtualForceInBaseFrame_.z()>50){
+//      virtualForceInBaseFrame_.z()=50;
+//  }else if(virtualForceInBaseFrame_.z()<-60){
+//      virtualForceInBaseFrame_.z()=-60;
+//  }
 
 //  std::cout << "--------------------" << std::endl;
 //  std::cout << "虚拟力: "<<virtualForceInBaseFrame_<< std::endl;
@@ -339,7 +353,11 @@ bool VirtualModelController::computeVirtualTorque()
                        +orientationControlToBase.rotate(Torque(feedforwardGainRotation_.cwiseProduct(feedforwardTermInControlFrame)))
                        + gravityCompensationTorqueInBaseFrame_;
 
-
+//  if(virtualTorqueInBaseFrame_.x()>7.0){
+//      virtualTorqueInBaseFrame_.x()=7.0;
+//  }else if(virtualTorqueInBaseFrame_.x()<-7.0){
+//      virtualTorqueInBaseFrame_.x()=-7.0;
+//  }
   //std::cout<<"Torque(proportionalGainRotation_.cwiseProduct(orientationError_)) "<<Torque(proportionalGainRotation_.cwiseProduct(orientationError_))<<std::endl;
   //std::cout<<"orientationControlToBase.rotate(Torque(derivativeGainRotation_.cwiseProduct(angularVelocityErrorInControlFrame_.toImplementation())))"<<orientationControlToBase.rotate(Torque(derivativeGainRotation_.cwiseProduct(angularVelocityErrorInControlFrame_.toImplementation())))<<std::endl;
 //    std::cout << "--------------------" << std::endl;

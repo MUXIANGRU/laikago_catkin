@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::Publisher joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 400);
     ros::Publisher pos_command_pub_ = nh.advertise<std_msgs::Float64MultiArray>("/all_joints_position_effort_group_controller/command",1);
-    ros::Rate loop_rate(100);
+    ros::Rate loop_rate(350);
     sensor_msgs::JointState joint_state;
     std_msgs::Float64MultiArray joint_group_positions_;
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     joint_group_positions_.data.resize(12);
 
     std::ifstream readfile;
-    readfile.open("/home/mxr/catkin_laikago/calculated_crawl.txt");
+    readfile.open("/home/mxr/catkin_laikago/calculated_crawl11_slow.txt");
     quadruped_model::JointPositions joint_position_file;
     std::vector<quadruped_model::JointPositions> joint_position_collection;
     double time;

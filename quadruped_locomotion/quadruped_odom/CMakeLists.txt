@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(quadruped_odom)
 
+add_definitions("-DBOOST_MPL_LIMIT_LIST_SIZE=30")
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
@@ -19,13 +20,16 @@ find_package(catkin REQUIRED COMPONENTS
   quadruped_model
   free_gait_msgs
   sim_assiants
+  gmbd_observer
 #  free_gait_ros
-  free_gait_core
+  free_gait_core 
 #  orocos_kdl
 )
 find_package(Eigen3 REQUIRED)
 find_package(sophus REQUIRED)
 find_package(kindr QUIET)
+find_package(Boost REQUIRED COMPONENTS system)
+find_package(pinocchio REQUIRED)
 if(NOT kindr_FOUND)
   # Attempt to find package-based kindr
   find_package(PkgConfig REQUIRED)
@@ -41,6 +45,9 @@ catkin_package(
   CATKIN_DEPENDS
   roscpp
   kdl_parser
+  gmbd_observer
+  DEPENDS system_lib
+  DEPENDS pinocchio
 #  qp_solver
 #  quadruped_model
 #  sim_assiants
@@ -54,6 +61,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  #/home/mxr/catkin_laikago/src/quadruped_locomotion/gmbd_observer/include
 #  ${RBDL_INCLUDE_DIR}
 )
 
@@ -63,21 +71,24 @@ add_library(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} )
 
-add_executable(legodom
-  src/legodom_node.cpp
-)
+#add_executable(legodom
+#  src/legodom_node.cpp
+#)
 # add_dependencies(legodom ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(legodom
-  ${PROJECT_NAME} ${catkin_LIBRARIES}
-)
+#target_link_libraries(legodom
+#    PUBLIC pinocchio::pinocchio
+#    ${PROJECT_NAME}
+#    ${catkin_LIBRARIES}
+#    pinocchio
+#)
 
-add_executable(legodom_test
-  src/legodom_test.cpp
-)
-add_dependencies(legodom_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(legodom_test
-  ${PROJECT_NAME} ${catkin_LIBRARIES}
-)
+#add_executable(legodom_test
+#  src/legodom_test.cpp
+#)
+#add_dependencies(legodom_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ##${catkin_EXPORTED_TARGETS})
+#target_link_libraries(legodom_test
+#  ${PROJECT_NAME} ${catkin_LIBRARIES} 
+#)
 
 
  install(TARGETS ${PROJECT_NAME} #${PROJECT_NAME}_node

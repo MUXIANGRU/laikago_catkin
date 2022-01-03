@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+<node pkg="gmbd_observer" type="gmbd_observer_node" name="gmbd_observer_node">
+</node>
+
+<node pkg="gmbd_observer" type="contact_pro" name="contact_pro">
+</node>
+
+</launch>

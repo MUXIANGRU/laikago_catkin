@@ -1,5 +1,6 @@
 #include "legodom.h"
 
+
 namespace quadruped_odom {
 
 QuadrupedEstimation::QuadrupedEstimation(const ros::NodeHandle& _nodehandle,
@@ -20,22 +21,50 @@ QuadrupedEstimation::QuadrupedEstimation(const ros::NodeHandle& _nodehandle,
     nodeHandle_.param("/cal_fator_z", _cal_fator_z, double(0.9));
     nodeHandle_.param("/real_time_factor", real_time_factor, double(0.2));
     nodeHandle_.param("/legodom/use_gazebo_feedback", gazebo_flag, bool(true));
+
     nodeHandle_.param("/imu_topic_name", imu_topic_name_, std::string("/imu/data"));
-    //Initialization1
+    //Initialization
     InitParam();
     init_time = ros::Time::now();
-    //sub topic
-    imu_sub = nodeHandle_.subscribe<sensor_msgs::Imu>(imu_topic_name_, 10, &QuadrupedEstimation::imuCb, this);
+    Contact_state.data.resize(4);
+    foot_odom.pose.pose.position.x=0.0;
+    foot_odom.pose.pose.position.y=0.0;
+    foot_odom.pose.pose.position.z=0.084;
+    footpos_delta.data.resize(12);
+    footpos_world.data.resize(12);
+    gazebo_contact.data.resize(4);
+    foot_contacts_.foot_contacts.resize(4);
+    gmbd_obs_lf_.reset(new gmbd_obs::Gmbd_obs(LimbEnum:: LF_LEG));
+    gmbd_obs_rf_.reset(new gmbd_obs::Gmbd_obs(LimbEnum:: RF_LEG));
+    gmbd_obs_rh_.reset(new gmbd_obs::Gmbd_obs(LimbEnum:: RH_LEG));
+    gmbd_obs_lh_.reset(new gmbd_obs::Gmbd_obs(LimbEnum:: LH_LEG));
+    contact_ptr_.reset(new ContactEstimation(_nodehandle));
+
+
 
     //########################pronto##########################
     nodeHandle_.param("/use_kin_state",use_kin_state,bool(false));
     nodeHandle_.param("/use_pronto_pose",use_pronto_pose,bool(false));
     nodeHandle_.param("/use_pronto_twist",use_pronto_twist,bool(false));
     nodeHandle_.param("/use_imu_orientation",use_imu_orientation,bool(false));
+    imu_sub = nodeHandle_.subscribe<sensor_msgs::Imu>(imu_topic_name_, 10, &QuadrupedEstimation::imuCb, this);
     pronto_pose_sub = nodeHandle_.subscribe("/laikago_state/pose",10,&QuadrupedEstimation::prontoPoseCB,this);
     pronto_twist_sub = nodeHandle_.subscribe("/laikago_state/twist",10,&QuadrupedEstimation::prontoTwistCB,this);
     init_pose_sub = nodeHandle_.subscribe("/laikago_pose",1,&QuadrupedEstimation::InitCB,this);
     LegOdom_sub_ = nodeHandle_.subscribe("/laikago_pronto/foot_odom",1,&QuadrupedEstimation::KinCB,this);
+    //Contact_sub = nodeHandle_.subscribe("/laikago_contact_state",1,&QuadrupedEstimation::ConCB,this);
+    gazeboC_sub = nodeHandle_.subscribe("/gazebo/foot_contact_state",1,&QuadrupedEstimation::gazeboConCB,this);
+    joint_state_sub = nodeHandle_.subscribe("/joint_states", 1, &QuadrupedEstimation::Gmbd_obs_Callback, this);
+    robot_phase_sub = nodeHandle_.subscribe("/desired_robot_state",1,&QuadrupedEstimation::robot_phaseCB,this);
+
+    //#####################publisher###################################
+    footpos_pub = nodeHandle_.advertise<std_msgs::Float64MultiArray>("/legodom/foot_position_in_world",1);
+    estimate_torque_lf_pub = nodeHandle_.advertise<geometry_msgs::WrenchStamped>("/legodom/estimate_torque_lf", 1);
+    estimate_torque_rf_pub = nodeHandle_.advertise<geometry_msgs::WrenchStamped>("/legodom/estimate_torque_rf", 1);
+    estimate_torque_rh_pub = nodeHandle_.advertise<geometry_msgs::WrenchStamped>("/legodom/estimate_torque_rh", 1);
+    estimate_torque_lh_pub = nodeHandle_.advertise<geometry_msgs::WrenchStamped>("/legodom/estimate_torque_lh", 1);
+    contactpro_pub = nodeHandle_.advertise<std_msgs::Float64MultiArray>("/legodom/contact_pro",1);
+    footContact_pub = nodeHandle_.advertise<sim_assiants::FootContacts>("/legodom/FootContacts",1);//MXR::note: for GPR
     //########################pronto##########################
 //    foot_state_sub = nodeHandle_.subscribe<std_msgs::Float64MultiArray>("/gazebo/foot_contact_state", 10, &QuadrupedEstimation::footstateCb, this);
 
@@ -113,8 +142,190 @@ QuadrupedEstimation::QuadrupedEstimation(const ros::NodeHandle& _nodehandle)
 QuadrupedEstimation::~QuadrupedEstimation(){
 
 }
-void QuadrupedEstimation::RobotStateLoad(){
+void QuadrupedEstimation::computeContactPro(){
+    contact_ptr_->p_f_lf = contact_ptr_->computeForcePro(estimate_torque_lf.wrench.force.z);
+    contact_ptr_->p_f_rf = contact_ptr_->computeForcePro(estimate_torque_rf.wrench.force.z);
+    contact_ptr_->p_f_lh = contact_ptr_->computeForcePro(estimate_torque_lh.wrench.force.z);
+    contact_ptr_->p_f_rh = contact_ptr_->computeForcePro(estimate_torque_rh.wrench.force.z);
+    contact_ptr_->lf_height = P_LF_w.z();
+    contact_ptr_->lh_height = P_LH_w.z();
+    contact_ptr_->rh_height = P_RH_w.z();
+    contact_ptr_->rf_height = P_RF_w.z();
+    contact_ptr_->p_h_lf = contact_ptr_->computeHeightPro(P_LF_w.z());
+    contact_ptr_->p_h_rf = contact_ptr_->computeHeightPro(P_RF_w.z());
+    contact_ptr_->p_h_lh = contact_ptr_->computeHeightPro(P_LH_w.z());
+    contact_ptr_->p_h_rh = contact_ptr_->computeHeightPro(P_RH_w.z());
 
+    Eigen::Matrix<double,4,4> A,B;//MXR::NOTE A(ZERO) b(IDENTITY)
+    A.setZero();
+    B.setIdentity();
+    Eigen::Matrix<double,4,1> U;
+    U(0,0)=contact_ptr_->p_c_lf;U(1,0)=contact_ptr_->p_c_rf;U(2,0)=contact_ptr_->p_c_lh;U(3,0)=contact_ptr_->p_c_rh;
+    contact_ptr_->Predict(A,B,contact_ptr_->x_state_pre,U);
+    //=======================================================
+    //===========update process==============================
+    Eigen::Matrix<double,8,1> Z;
+    Z(0,0)=contact_ptr_->p_f_lf;Z(1,0)=contact_ptr_->p_h_lf;Z(2,0)=contact_ptr_->p_f_rf;Z(3,0)=contact_ptr_->p_h_rf;
+    Z(4,0)=contact_ptr_->p_f_lh;Z(5,0)=contact_ptr_->p_h_lh;Z(6,0)=contact_ptr_->p_f_rh;Z(7,0)=contact_ptr_->p_h_rh;
+    contact_ptr_->Update(Z);
+
+    contact_ptr_->contact_prob.data[0] = contact_ptr_->x_state_pre(0,0);//lf
+    contact_ptr_->contact_prob.data[1] = contact_ptr_->x_state_pre(1,0);//rf
+    contact_ptr_->contact_prob.data[3] = contact_ptr_->x_state_pre(2,0);//lh
+    contact_ptr_->contact_prob.data[2] = contact_ptr_->x_state_pre(3,0);//rh
+
+//        std::cout<<"============================"<<std::endl;
+//        std::cout<<"lf_height     "<<contact_ptr_->lf_height<<std::endl;
+//        std::cout<<"rf_height     "<<contact_ptr_->rf_height<<std::endl;
+//        std::cout<<"lh_height     "<<contact_ptr_->lh_height<<std::endl;
+//        std::cout<<"rh_height     "<<contact_ptr_->rh_height<<std::endl;
+//        std::cout<<"============================"<<std::endl;
+    if((contact_ptr_->lf_height==0.0&&contact_ptr_->lh_height==0.0&&contact_ptr_->rh_height==0.0&&contact_ptr_->rf_height==0.0)||
+            (contact_ptr_->lf_phase==-1.0&&contact_ptr_->lh_phase==-1.0&&contact_ptr_->rh_phase==-1.0&&contact_ptr_->rf_phase==-1.0)){
+        contact_ptr_->contact_prob.data[0] = 1.0;
+        contact_ptr_->contact_prob.data[1] = 1.0;
+        contact_ptr_->contact_prob.data[2] = 1.0;
+        contact_ptr_->contact_prob.data[3] = 1.0;
+    }
+    Contact_state.data[0]=contact_ptr_->contact_prob.data[0];
+    Contact_state.data[1]=contact_ptr_->contact_prob.data[1];
+    Contact_state.data[3]=contact_ptr_->contact_prob.data[3];
+    Contact_state.data[2]=contact_ptr_->contact_prob.data[2];
+    lf_foot_contact_.is_contact=Contact_state.data[0];
+    rf_foot_contact_.is_contact=Contact_state.data[1];
+    rh_foot_contact_.is_contact=Contact_state.data[2];
+    lh_foot_contact_.is_contact=Contact_state.data[3];
+//        std::cout<<"============================"<<std::endl;
+//        std::cout<<"U    "<<U<<std::endl;
+//        std::cout<<"Z    "<<Z<<std::endl;
+//        std::cout<<"p_pre    "<<P_pre<<std::endl;
+//        std::cout<<"============================"<<std::endl;
+    contactpro_pub.publish(contact_ptr_->contact_prob);
+}
+void QuadrupedEstimation::robot_phaseCB(const free_gait_msgs::RobotState::ConstPtr &msg){
+    contact_ptr_->lf_phase=msg->lf_leg_mode.phase;
+    contact_ptr_->rf_phase=msg->rf_leg_mode.phase;
+    contact_ptr_->lh_phase=msg->lh_leg_mode.phase;
+    contact_ptr_->rh_phase=msg->rh_leg_mode.phase;
+    if(msg->lf_leg_mode.support_leg==1&&msg->lf_leg_mode.phase!=0.0){
+        contact_ptr_->p_c_lf = contact_ptr_->computeContactPro(0);
+    }else{
+        contact_ptr_->p_c_lf = contact_ptr_->computeContactPro(msg->lf_leg_mode.phase);
+    }
+    if(msg->rf_leg_mode.support_leg==1&&msg->rf_leg_mode.phase!=0.0){
+        contact_ptr_->p_c_rf = contact_ptr_->computeContactPro(0);
+    }else{
+        contact_ptr_->p_c_rf = contact_ptr_->computeContactPro(msg->rf_leg_mode.phase);
+    }
+    if(msg->lh_leg_mode.support_leg==1&&msg->lh_leg_mode.phase!=0.0){
+        contact_ptr_->p_c_lh = contact_ptr_->computeContactPro(0);
+    }else{
+        contact_ptr_->p_c_lh = contact_ptr_->computeContactPro(msg->lh_leg_mode.phase);
+    }
+    if(msg->rh_leg_mode.support_leg==1&&msg->rh_leg_mode.phase!=0.0){
+        contact_ptr_->p_c_rh = contact_ptr_->computeContactPro(0);
+    }else{
+        contact_ptr_->p_c_rh = contact_ptr_->computeContactPro(msg->rh_leg_mode.phase);
+    }
+
+//    p_c_rf = computeContactPro(msg->rf_leg_mode.phase);
+//    p_c_lh = computeContactPro(msg->lh_leg_mode.phase);
+//    p_c_rh = computeContactPro(msg->rh_leg_mode.phase);
+//    std::cout<<"============================"<<std::endl;
+//    std::cout<<"p_c_lf     "<<p_c_lf<<std::endl;
+//    std::cout<<"p_c_rf     "<<p_c_rf<<std::endl;
+//    std::cout<<"p_c_lh     "<<p_c_lh<<std::endl;
+//    std::cout<<"p_c_rh     "<<p_c_rh<<std::endl;
+//    std::cout<<"============================"<<std::endl;
+}
+void QuadrupedEstimation::Gmbd_obs_Callback(const sensor_msgs::JointState::ConstPtr &robot_state_){
+    VectorXd q_lf_, q_rf_, q_rh_, q_lh_;
+    VectorXd v_lf_, v_rf_, v_rh_, v_lh_;
+    VectorXd e_lf_, e_rf_, e_rh_, e_lh_;
+    for (int i = 0; i < 3; i++)
+    {
+        q_lf_.resize(3);
+        q_rf_.resize(3);
+        q_rh_.resize(3);
+        q_lh_.resize(3);
+        v_lf_.resize(3);
+        v_rf_.resize(3);
+        v_rh_.resize(3);
+        v_lh_.resize(3);
+        e_lf_.resize(3);
+        e_rf_.resize(3);
+        e_rh_.resize(3);
+        e_lh_.resize(3);
+        q_lf_<<robot_state_->position[0],robot_state_->position[1],robot_state_->position[2];
+        q_rf_<<robot_state_->position[6],robot_state_->position[7],robot_state_->position[8];
+        q_rh_<<robot_state_->position[9],robot_state_->position[10],robot_state_->position[11];
+        q_lh_<<robot_state_->position[3],robot_state_->position[4],robot_state_->position[5];
+        v_lf_<<robot_state_->velocity[0],robot_state_->velocity[1],robot_state_->velocity[2];
+        v_rf_<<robot_state_->velocity[6],robot_state_->velocity[7],robot_state_->velocity[8];
+        v_rh_<<robot_state_->velocity[9],robot_state_->velocity[10],robot_state_->velocity[11];
+        v_lh_<<robot_state_->velocity[3],robot_state_->velocity[4],robot_state_->velocity[5];
+        e_lf_<<robot_state_->effort[0],robot_state_->effort[1],robot_state_->effort[2];
+        e_rf_<<robot_state_->effort[6],robot_state_->effort[7],robot_state_->effort[8];
+        e_rh_<<robot_state_->effort[9],robot_state_->effort[10],robot_state_->effort[11];
+        e_lh_<<robot_state_->effort[3],robot_state_->effort[4],robot_state_->effort[5];
+        gmbd_obs_lf_->compute(q_lf_,v_lf_,e_lf_);
+        gmbd_obs_rf_->compute(q_rf_,v_rf_,e_rf_);
+        gmbd_obs_rh_->compute(q_rh_,v_rh_,e_rh_);
+        gmbd_obs_lh_->compute(q_lh_,v_lh_,e_lh_);
+
+        estimate_torque_lf.wrench.force.x = gmbd_obs_lf_->get_disturbance_force()[0];
+        estimate_torque_lf.wrench.torque.x = gmbd_obs_lf_->get_ata()[0];
+        estimate_torque_lf.wrench.force.y = gmbd_obs_lf_->get_disturbance_force()[1];
+        estimate_torque_lf.wrench.torque.y = gmbd_obs_lf_->get_ata()[1];
+        estimate_torque_lf.wrench.force.z = gmbd_obs_lf_->get_disturbance_force()[2];
+        estimate_torque_lf.wrench.torque.z = gmbd_obs_lf_->get_ata()[2];
+
+        //cout << "estimat_torque_lf_z is:\n"
+        //     << estimate_torque_lf.wrench.force.z << endl;
+
+        estimate_torque_rf.wrench.force.x = gmbd_obs_rf_->get_disturbance_force()[0];
+        estimate_torque_rf.wrench.torque.x= gmbd_obs_rf_->get_ata()[0];
+        estimate_torque_rf.wrench.force.y = gmbd_obs_rf_->get_disturbance_force()[1];
+        estimate_torque_rf.wrench.torque.y= gmbd_obs_rf_->get_ata()[1];
+        estimate_torque_rf.wrench.force.z = gmbd_obs_rf_->get_disturbance_force()[2];
+        estimate_torque_rf.wrench.torque.z= gmbd_obs_rf_->get_ata()[2];
+
+        estimate_torque_rh.wrench.force.x = gmbd_obs_rh_->get_disturbance_force()[0];
+        estimate_torque_rh.wrench.torque.x= gmbd_obs_rh_->get_ata()[0];
+        estimate_torque_rh.wrench.force.y = gmbd_obs_rh_->get_disturbance_force()[1];
+        estimate_torque_rh.wrench.torque.y= gmbd_obs_rh_->get_ata()[1];
+        estimate_torque_rh.wrench.force.z = gmbd_obs_rh_->get_disturbance_force()[2];
+        estimate_torque_rh.wrench.torque.z= gmbd_obs_rh_->get_ata()[2];
+
+        estimate_torque_lh.wrench.force.x = gmbd_obs_lh_->get_disturbance_force()[0];
+        estimate_torque_lh.wrench.torque.x= gmbd_obs_lh_->get_ata()[0];
+        estimate_torque_lh.wrench.force.y = gmbd_obs_lh_->get_disturbance_force()[1];
+        estimate_torque_lh.wrench.torque.y= gmbd_obs_lh_->get_ata()[1];
+        estimate_torque_lh.wrench.force.z = gmbd_obs_lh_->get_disturbance_force()[2];
+        estimate_torque_lh.wrench.torque.z= gmbd_obs_lh_->get_ata()[2];
+    }
+//    cout << "estimat_torque_lh_z is:\n"
+//         << estimate_torque_lh.wrench.force.z << endl;
+    estimate_torque_lf_pub.publish(estimate_torque_lf);
+    estimate_torque_rf_pub.publish(estimate_torque_rf);
+    estimate_torque_rh_pub.publish(estimate_torque_rh);
+    estimate_torque_lh_pub.publish(estimate_torque_lh);
+    //estimate_torque_lh_pub.publish(estimate_torque_lh);
+}
+void QuadrupedEstimation::gazeboConCB(const std_msgs::Float64MultiArray &msg){
+    gazebo_contact.data[0]=msg.data[0];
+    gazebo_contact.data[1]=msg.data[1];
+    gazebo_contact.data[2]=msg.data[2];
+    gazebo_contact.data[3]=msg.data[3];
+}
+void QuadrupedEstimation::ConCB(const std_msgs::Float64MultiArray &msg){
+    ROS_WARN_ONCE("get contact msg from sensor!!!!!!!!!!");
+    //msg lf rf lh rh
+    //my lf rf rh lh
+    Contact_state.data[0]=msg.data[0];
+    Contact_state.data[1]=msg.data[1];
+    Contact_state.data[3]=msg.data[2];
+    Contact_state.data[2]=msg.data[3];
 
 }
 
@@ -164,6 +375,12 @@ void QuadrupedEstimation::imuCb(const sensor_msgs::Imu::ConstPtr& imu_msg){
 
     ROS_WARN_ONCE("get imu_msg!!!!!!!!!!!!!!");
     imu_output = *imu_msg;
+    imu_output.angular_velocity.x=imu_msg->angular_velocity.x/57.3;
+    imu_output.angular_velocity.y=imu_msg->angular_velocity.y/57.3;
+    imu_output.angular_velocity.z=imu_msg->angular_velocity.z/57.3;
+//    imu_output.angular_velocity.x=imu_msg->angular_velocity.x;
+//    imu_output.angular_velocity.y=imu_msg->angular_velocity.y;
+//    imu_output.angular_velocity.z=imu_msg->angular_velocity.z;
     imu_cb_flag = true;
     if(use_imu_orientation){
         ROS_WARN_ONCE("using imu to get orientation!!!!!!!!!!!");
@@ -174,6 +391,188 @@ void QuadrupedEstimation::imuCb(const sensor_msgs::Imu::ConstPtr& imu_msg){
     }
 }
 
+void QuadrupedEstimation::getKINposition(){
+    ROS_WARN_ONCE("get position from fore code!!!");
+
+    base_orientation=robot_state_->getOrientationBaseToWorld();
+    //cout<<"rotation    "<<base_orientation<<endl;
+    Eigen::Quaterniond orient;
+    orient.x()= odom_orientation.x();
+    orient.y()= odom_orientation.y();
+    orient.z()= odom_orientation.z();
+    orient.w()= odom_orientation.w();
+    Eigen::Matrix3d rotation_matrix_trans = orient.normalized().toRotationMatrix();
+    //cout<<"P_LF    "<<P_LF<<endl;
+    P_LF.x()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::LF_LEG).getPosition().x();
+    P_LF.y()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::LF_LEG).getPosition().y();
+    P_LF.z()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::LF_LEG).getPosition().z();
+    P_RF.x()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::RF_LEG).getPosition().x();
+    P_RF.y()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::RF_LEG).getPosition().y();
+    P_RF.z()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::RF_LEG).getPosition().z();
+    P_LH.x()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::LH_LEG).getPosition().x();
+    P_LH.y()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::LH_LEG).getPosition().y();
+    P_LH.z()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::LH_LEG).getPosition().z();
+    P_RH.x()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::RH_LEG).getPosition().x();
+    P_RH.y()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::RH_LEG).getPosition().y();
+    P_RH.z()=robot_state_->getPoseFootInBaseFrame(free_gait::LimbEnum::RH_LEG).getPosition().z();
+
+    POSE_IN_WORLD.x()=foot_odom.pose.pose.position.x;
+    POSE_IN_WORLD.y()=foot_odom.pose.pose.position.y;
+    POSE_IN_WORLD.z()=foot_odom.pose.pose.position.z;
+    //POSE_IN_WORLD<<foot_odom.pose.pose.position.x,foot_odom.pose.pose.position.y,foot_odom.pose.pose.position.z;
+    //cout<<"POSE_IN_WORLD   "<<POSE_IN_WORLD<<endl;
+    P_LF_r=rotation_matrix_trans*P_LF;
+    P_LF_w=rotation_matrix_trans*P_LF+POSE_IN_WORLD;
+    P_RF_r=rotation_matrix_trans*P_RF;
+    P_RF_w=rotation_matrix_trans*P_RF+POSE_IN_WORLD;
+    P_RH_r=rotation_matrix_trans*P_RH;
+    P_RH_w=rotation_matrix_trans*P_RH+POSE_IN_WORLD;
+    P_LH_r=rotation_matrix_trans*P_LH;
+    P_LH_w=rotation_matrix_trans*P_LH+POSE_IN_WORLD;
+
+    footpos_world.data[0]=P_LF_w.x();
+    footpos_world.data[1]=P_LF_w.y();
+    footpos_world.data[2]=P_LF_w.z();
+    footpos_world.data[3]=P_RF_w.x();
+    footpos_world.data[4]=P_RF_w.y();
+    footpos_world.data[5]=P_RF_w.z();
+    footpos_world.data[6]=P_RH_w.x();
+    footpos_world.data[7]=P_RH_w.y();
+    footpos_world.data[8]=P_RH_w.z();
+    footpos_world.data[9]=P_LH_w.x();
+    footpos_world.data[10]=P_LH_w.y();
+    footpos_world.data[11]=P_LH_w.z();
+    footpos_pub.publish(footpos_world);
+
+
+    if(pre_P_LF.x()==0.0&&pre_P_LF.y()==0.0&&pre_P_LF.z()==0.0){
+        pre_P_LF=P_LF_r;
+        pre_p_RF=P_RF_r;
+        pre_P_RH=P_RH_r;
+        pre_P_LH=P_LH_r;
+    }
+    if(Contact_state.data[0]>=0.8){
+        //cout<<"first contact!!!"<<endl;
+        footpos_delta.data[0]=P_LF_r[0]-pre_P_LF[0];
+        footpos_delta.data[1]=P_LF_r[1]-pre_P_LF[1];
+        footpos_delta.data[2]=P_LF_r[2]-pre_P_LF[2];
+    }
+    if(Contact_state.data[1]>=0.8){
+        //cout<<"second contact!!!"<<endl;
+        footpos_delta.data[3]=P_RF_r[0]-pre_p_RF[0];
+        footpos_delta.data[4]=P_RF_r[1]-pre_p_RF[1];
+        footpos_delta.data[5]=P_RF_r[2]-pre_p_RF[2];
+    }
+    if(Contact_state.data[2]>=0.8){
+        //cout<<"third contact!!!"<<endl;
+        footpos_delta.data[6]=P_RH_r[0]-pre_P_RH[0];
+        footpos_delta.data[7]=P_RH_r[1]-pre_P_RH[1];
+        footpos_delta.data[8]=P_RH_r[2]-pre_P_RH[2];
+    }
+    if(Contact_state.data[3]>=0.8){
+        //cout<<"fourth contact!!!"<<endl;
+        footpos_delta.data[9]=P_LH_r[0]-pre_P_LH[0];
+        footpos_delta.data[10]=P_LH_r[1]-pre_P_LH[1];
+        footpos_delta.data[11]=P_LH_r[2]-pre_P_LH[2];
+    }
+    LF_foot_Pos_delta<<footpos_delta.data[0],footpos_delta.data[1],footpos_delta.data[2];
+    RF_foot_Pos_delta<<footpos_delta.data[3],footpos_delta.data[4],footpos_delta.data[5];
+    RH_foot_Pos_delta<<footpos_delta.data[6],footpos_delta.data[7],footpos_delta.data[8];
+    LH_foot_Pos_delta<<footpos_delta.data[9],footpos_delta.data[10],footpos_delta.data[11];
+//    cout<<"LF_foot_Pos_delta   "<<LF_foot_Pos_delta<<endl;
+//    cout<<"RF_foot_Pos_delta   "<<RF_foot_Pos_delta<<endl;
+    N_contact=Contact_state.data[0]+Contact_state.data[1]+
+            Contact_state.data[2]+Contact_state.data[3];
+    double weight;
+    if(N_contact<=4.0&&N_contact>3.1){
+        weight = 0.25;
+    }else if(N_contact<=3.1&&N_contact>2.0){
+        weight=0.33;
+    }else if(N_contact<=2.0&&N_contact>1.0){
+        weight=0.5;
+    }else if(N_contact<=1.0&&N_contact>=0.6){
+        weight=1.0;
+    }else{
+        weight=0.0;
+    }
+   // cout<<"lh       "<<Contact_state.data[3]<<endl;
+//    cout<<"$$$$  "<<N_contact<<endl;
+//    cout<<1.0/N_contact<<endl;
+//    weight=1.0/N_contact;
+//    std::cout<<robot_state_handle.foot_contact_[0]<<" "<<robot_state_handle.foot_contact_[1]<<" "
+//                                         <<robot_state_handle.foot_contact_[2]<<" "<<robot_state_handle.foot_contact_[3]<<std::endl;
+    x_delta = (LF_foot_Pos_delta.x()*Contact_state.data[0]+
+                       RF_foot_Pos_delta.x()*Contact_state.data[1]+RH_foot_Pos_delta.x()*Contact_state.data[2]+LH_foot_Pos_delta.x()*Contact_state.data[3])*(weight);
+    y_delta = (weight)*(LF_foot_Pos_delta.y()*(double)Contact_state.data[0]+
+            RF_foot_Pos_delta.y()*(double)Contact_state.data[1]+RH_foot_Pos_delta.y()*(double)Contact_state.data[2]+LH_foot_Pos_delta.y()*(double)Contact_state.data[3]);
+    z_delta = (0.25)*(P_LH_r[2]+
+            P_LF_r[2]+P_RF_r[2]+P_RH_r[2]);
+
+    if((Contact_state.data[0]<0.1)||(Contact_state.data[1]<0.1)  //当足端不接触时,默认z方向位置不变
+            ||(Contact_state.data[2]<0.1)||(Contact_state.data[3]<0.1)){
+         z_delta = pre_pos;
+//        x_delta=0.0;
+//        y_delta=0.0;
+       // z_delta = (P_LH_r[2]*Contact_state.data[3]+
+            //    P_LF_r[2]*Contact_state.data[0]+P_RF_r[2]*Contact_state.data[1]+P_RH_r[2]*Contact_state.data[2])*(weight);
+    }
+//    if(abs(z_delta-pre_pos)>0.01){
+//        z_delta=pre_pos+(z_delta-pre_pos)/10;
+//    }
+    pre_pos = z_delta;
+    foot_odom.pose.pose.position.x +=(-x_delta);
+    foot_odom.pose.pose.position.y -=y_delta;
+    foot_odom.pose.pose.position.z =(-z_delta+0.02);  //0.02 for foot radius???
+//    cout<<"foot_odom.pose.pose.position.x   "<<foot_odom.pose.pose.position.x <<endl;
+//    cout<<"foot_odom.pose.pose.position.y   "<<foot_odom.pose.pose.position.y <<endl;
+//    cout<<"foot_odom.pose.pose.position.z   "<<foot_odom.pose.pose.position.z <<endl;
+    foot_odom.pose.covariance[0]=0.005;
+    foot_odom.pose.covariance[7]=0.005;
+    foot_odom.pose.covariance[14]=0.005;
+
+    pre_P_LF=P_LF_r;
+    pre_p_RF=P_RF_r;
+    pre_P_RH=P_RH_r;
+    pre_P_LH=P_LH_r;
+
+    odom_position.x() = foot_odom.pose.pose.position.x;
+    odom_position.y() = foot_odom.pose.pose.position.y;
+    odom_position.z() = foot_odom.pose.pose.position.z;
+
+//    Contact_state.data[0]=contact_ptr_->contact_prob.data[0]; //lf
+//    Contact_state.data[1]=contact_ptr_->contact_prob.data[1]; //rf
+//    Contact_state.data[3]=contact_ptr_->contact_prob.data[2]; //lh
+//    Contact_state.data[2]=contact_ptr_->contact_prob.data[3]; //rh
+
+    lf_foot_contact_.name = "LF_LEG";
+    rf_foot_contact_.name = "RF_LEG";
+    rh_foot_contact_.name = "RH_LEG";
+    lh_foot_contact_.name = "LH_LEG";
+    lf_foot_contact_.contact_position.vector.x=footpos_world.data[0];
+    lf_foot_contact_.contact_position.vector.y=footpos_world.data[1];
+    lf_foot_contact_.contact_position.vector.z=footpos_world.data[2];
+    rf_foot_contact_.contact_position.vector.x=footpos_world.data[3];
+    rf_foot_contact_.contact_position.vector.y=footpos_world.data[4];
+    rf_foot_contact_.contact_position.vector.z=footpos_world.data[5];
+    rh_foot_contact_.contact_position.vector.x=footpos_world.data[6];
+    rh_foot_contact_.contact_position.vector.y=footpos_world.data[7];
+    rh_foot_contact_.contact_position.vector.z=footpos_world.data[8];
+    lh_foot_contact_.contact_position.vector.x=footpos_world.data[9];
+    lh_foot_contact_.contact_position.vector.y=footpos_world.data[10];
+    lh_foot_contact_.contact_position.vector.z=footpos_world.data[11];
+    foot_contacts_.foot_contacts[0] = lf_foot_contact_;
+    //foot_contacts_.foot_contacts[0].contact_position.header.stamp = lf_wrench_.header.stamp;
+    foot_contacts_.foot_contacts[1] = rf_foot_contact_;
+    //foot_contacts_.foot_contacts[0].contact_position.header.stamp = lf_wrench_.header.stamp;
+    foot_contacts_.foot_contacts[2] = rh_foot_contact_;
+    //foot_contacts_.foot_contacts[0].contact_position.header.stamp = lf_wrench_.header.stamp;
+    foot_contacts_.foot_contacts[3] = lh_foot_contact_;
+    //foot_contacts_.foot_contacts[0].contact_position.header.stamp = lf_wrench_.header.stamp;
+    footContact_pub.publish(foot_contacts_);
+
+
+
+}
 void QuadrupedEstimation::jointsCb(const sensor_msgs::JointState::ConstPtr& joint_msg){
 
 //    for(int i=0; i< 16; ++i){
@@ -537,29 +936,32 @@ void QuadrupedEstimation::ResetParms(){
 bool QuadrupedEstimation::ProcessSensorData() {
     TicToc t_data_solve;
 //    ROS_ERROR("ProcessSensorData begin");
+    getKINposition();
+    //GetLinearVelFromJointvel();
+    computeContactPro();
 
     //get odom--->world
-    TFINIT();//check
+    //TFINIT();//check
 
     ////////////////////
     //foot judge
-    FootstateJudge(foot_output);//check
+    //FootstateJudge(foot_output);//check
 
 //    foot_pose_ in base
-    GetFootPoseInBase();//check
+    //GetFootPoseInBase();//check
 
     // global orientation+noise
-    QuadrupedOrientation();//check
+    //QuadrupedOrientation();//check
 
     //global-position
-    QuadrupedPosition();//check
+    //QuadrupedPosition();//check
     //global-position
-    QuadrupedVel();//check
+    //QuadrupedVel();//check
 
 
 
     //odom-output
-    LegOdomOut();//check
+    //LegOdomOut();//check
 
     //tf-output
     LegTFOut();//check
@@ -847,7 +1249,7 @@ void  QuadrupedEstimation::LegOdomOut(){
                                 0, 0, 0, 0, 1e-9, 0,
                                 0, 0, 0, 0, 0, 1e-9}};
     Pose_stamped_.pose.covariance = pose_covariance;
-    legPose_pub.publish(Pose_stamped_);
+    //legPose_pub.publish(Pose_stamped_);
 
     Pose odom_pose;
     kindr_ros::convertFromRosGeometryMsg(legodom_map_.pose.pose, odom_pose);
@@ -973,81 +1375,116 @@ void  QuadrupedEstimation::LegOdomOut(){
 }
 
 void QuadrupedEstimation::LegTFOut(){
-//    ROS_WARN("LegTFOut !!!");
+    ROS_WARN_ONCE("LegTFOut !!!");
+    Eigen::Quaterniond q(odom_orientation.w(),odom_orientation.x(),
+                         odom_orientation.y(),odom_orientation.z());
+    Eigen::Quaterniond q1 = q.normalized();
+    tf::Quaternion q_rot;
+    q_rot.setW(q1.w());
+    q_rot.setX(q1.x());
+    q_rot.setY(q1.y());
+    q_rot.setZ(q1.z());
+    double yaw, pitch, roll;
+    tf::Matrix3x3(q_rot).getRPY(roll, pitch, yaw);
+    odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
+    base_to_odom.setRotation(q_rot);
+    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll,pitch,0));
+    base_to_odom.setOrigin(tf::Vector3(odom_position.x(),odom_position.y()
+                                 ,odom_position.z()));
+    odom_to_footprint.setOrigin(tf::Vector3(odom_position.x(),
+                                odom_position.y(),
+                                0));
+    footprint_to_base.setOrigin(tf::Vector3(0,0,odom_position.z()));
+
+    ros::Time sim_time = ros::Time::now();
+    //pose_measn_Pub.publish(pose_means);
+    //tfBoardcaster_.sendTransform(tf::StampedTransform(base_to_odom, br_time, "/odom", "/base"));
+    tfBoardcaster_.sendTransform(tf::StampedTransform(odom_to_footprint,sim_time,"/odom","/foot_print"));
+    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base,sim_time, "/foot_print", "/base"));
+    Pose_stamped_.header.stamp=sim_time;
+    Pose_stamped_.pose.pose.position.x=odom_position.x();
+    Pose_stamped_.pose.pose.position.y=odom_position.y();
+    Pose_stamped_.pose.pose.position.z=odom_position.z();
+    Pose_stamped_.pose.pose.orientation.w=odom_orientation.w();
+    Pose_stamped_.pose.pose.orientation.x=odom_orientation.x();
+    Pose_stamped_.pose.pose.orientation.y=odom_orientation.y();
+    Pose_stamped_.pose.pose.orientation.z=odom_orientation.z();
+    legPose_pub.publish(Pose_stamped_);
+
 //*********************base2map_tf***************************//
-    ros::Time sim_time(imu_output.header.stamp);//ros::Time::now().toSec() - init_time.toSec());
-    if(!gazebo_flag)
-      sim_time = ros::Time::now();
-    //    base2map_tf.header.frame_id = "map";
-//    base2map_tf.child_frame_id = "base_link";
-//    base2map_tf.header.stamp = sim_time;//ros::Time::now(). - init_time;
-//    base2map_tf.transform.translation.x = odom_position(0);
-//    base2map_tf.transform.translation.y = odom_position(1);
-//    base2map_tf.transform.translation.z = odom_position(2);
-//    base2map_tf.transform.rotation.x = odom_orientation.x();
-//    base2map_tf.transform.rotation.y = odom_orientation.y();
-//    base2map_tf.transform.rotation.z = odom_orientation.z();
-//    base2map_tf.transform.rotation.w = odom_orientation.w();
-//    base2map_broadcaster.sendTransform(base2map_tf);
+//    ros::Time sim_time(imu_output.header.stamp);//ros::Time::now().toSec() - init_time.toSec());
+//    if(!gazebo_flag)
+//      sim_time = ros::Time::now();
+//    //    base2map_tf.header.frame_id = "map";
+////    base2map_tf.child_frame_id = "base_link";
+////    base2map_tf.header.stamp = sim_time;//ros::Time::now(). - init_time;
+////    base2map_tf.transform.translation.x = odom_position(0);
+////    base2map_tf.transform.translation.y = odom_position(1);
+////    base2map_tf.transform.translation.z = odom_position(2);
+////    base2map_tf.transform.rotation.x = odom_orientation.x();
+////    base2map_tf.transform.rotation.y = odom_orientation.y();
+////    base2map_tf.transform.rotation.z = odom_orientation.z();
+////    base2map_tf.transform.rotation.w = odom_orientation.w();
+////    base2map_broadcaster.sendTransform(base2map_tf);
 
-//*********************base2odom_tf***************************//
-    base2odom_tf.header.frame_id = "odom";
-    base2odom_tf.child_frame_id = "base";
-    base2odom_tf.header.stamp = sim_time;//ros::Time::now() - init_time;
-    base2odom_tf.transform.translation.x = legodom_tf.getOrigin().x();
-    base2odom_tf.transform.translation.y = legodom_tf.getOrigin().y();
-    base2odom_tf.transform.translation.z = legodom_tf.getOrigin().z();
-    base2odom_tf.transform.rotation.x = legodom_tf.getRotation().x();
-    base2odom_tf.transform.rotation.y = legodom_tf.getRotation().y();
-    base2odom_tf.transform.rotation.z = legodom_tf.getRotation().z();
-    base2odom_tf.transform.rotation.w = legodom_tf.getRotation().w();
-    //base2map_broadcaster.sendTransform(base2odom_tf);
+////*********************base2odom_tf***************************//
+//    base2odom_tf.header.frame_id = "odom";
+//    base2odom_tf.child_frame_id = "base";
+//    base2odom_tf.header.stamp = sim_time;//ros::Time::now() - init_time;
+//    base2odom_tf.transform.translation.x = legodom_tf.getOrigin().x();
+//    base2odom_tf.transform.translation.y = legodom_tf.getOrigin().y();
+//    base2odom_tf.transform.translation.z = legodom_tf.getOrigin().z();
+//    base2odom_tf.transform.rotation.x = legodom_tf.getRotation().x();
+//    base2odom_tf.transform.rotation.y = legodom_tf.getRotation().y();
+//    base2odom_tf.transform.rotation.z = legodom_tf.getRotation().z();
+//    base2odom_tf.transform.rotation.w = legodom_tf.getRotation().w();
+//    //base2map_broadcaster.sendTransform(base2odom_tf);
 
 
 
-    //*********************odom2map_tf***************************//
-//    odom2map_tf.header.frame_id = "map";
-//    odom2map_tf.child_frame_id = "odom";
-//    odom2map_tf.header.stamp = sim_time;//ros::Time::now() - init_time;
-//    odom2map_tf.transform.translation.x = init_x;
-//    odom2map_tf.transform.translation.y = init_y;
-//    odom2map_tf.transform.translation.z = 0;
-//    odom2map_tf.transform.rotation.x = init_wx;
-//    odom2map_tf.transform.rotation.y = init_wy;
-//    odom2map_tf.transform.rotation.z = init_wz;
-//    odom2map_tf.transform.rotation.w = init_ww;
-//    base2map_broadcaster.sendTransform(odom2map_tf);
+//    //*********************odom2map_tf***************************//
+////    odom2map_tf.header.frame_id = "map";
+////    odom2map_tf.child_frame_id = "odom";
+////    odom2map_tf.header.stamp = sim_time;//ros::Time::now() - init_time;
+////    odom2map_tf.transform.translation.x = init_x;
+////    odom2map_tf.transform.translation.y = init_y;
+////    odom2map_tf.transform.translation.z = 0;
+////    odom2map_tf.transform.rotation.x = init_wx;
+////    odom2map_tf.transform.rotation.y = init_wy;
+////    odom2map_tf.transform.rotation.z = init_wz;
+////    odom2map_tf.transform.rotation.w = init_ww;
+////    base2map_broadcaster.sendTransform(odom2map_tf);
 
-//    ROS_WARN("LegTFOut........... !!!");
+////    ROS_WARN("LegTFOut........... !!!");
+////    tf::Quaternion q;
+////    q.setW(legodom_tf.getRotation().w());
+////    q.setX(legodom_tf.getRotation().x());
+////    q.setY(legodom_tf.getRotation().y());
+////    q.setZ(legodom_tf.getRotation().z());
+////    double yaw, pitch, roll;
+////    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+////    odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
+////    odom_to_footprint.setOrigin(tf::Vector3(legodom_tf.getOrigin().x(),legodom_tf.getOrigin().y(),0));
+////    tfBoardcaster_.sendTransform(tf::StampedTransform(odom_to_footprint, sim_time, "odom", "foot_print"));
+
+////    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll, pitch, 0.0));
+////    footprint_to_base.setOrigin(tf::Vector3(0,0,legodom_tf.getOrigin().z()));
+////    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base_link"));
+
 //    tf::Quaternion q;
-//    q.setW(legodom_tf.getRotation().w());
-//    q.setX(legodom_tf.getRotation().x());
-//    q.setY(legodom_tf.getRotation().y());
-//    q.setZ(legodom_tf.getRotation().z());
+//    q.setW(odom_orientation.w());
+//    q.setX(odom_orientation.x());
+//    q.setY(odom_orientation.y());
+//    q.setZ(odom_orientation.z());
 //    double yaw, pitch, roll;
 //    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 //    odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
-//    odom_to_footprint.setOrigin(tf::Vector3(legodom_tf.getOrigin().x(),legodom_tf.getOrigin().y(),0));
+//    odom_to_footprint.setOrigin(tf::Vector3(odom_position(0),odom_position(1),0));
 //    tfBoardcaster_.sendTransform(tf::StampedTransform(odom_to_footprint, sim_time, "odom", "foot_print"));
 
 //    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll, pitch, 0.0));
-//    footprint_to_base.setOrigin(tf::Vector3(0,0,legodom_tf.getOrigin().z()));
-//    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base_link"));
-
-    tf::Quaternion q;
-    q.setW(odom_orientation.w());
-    q.setX(odom_orientation.x());
-    q.setY(odom_orientation.y());
-    q.setZ(odom_orientation.z());
-    double yaw, pitch, roll;
-    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-    odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
-    odom_to_footprint.setOrigin(tf::Vector3(odom_position(0),odom_position(1),0));
-    tfBoardcaster_.sendTransform(tf::StampedTransform(odom_to_footprint, sim_time, "odom", "foot_print"));
-
-    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll, pitch, 0.0));
-    footprint_to_base.setOrigin(tf::Vector3(0,0,odom_position(2)));
-    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base"));
+//    footprint_to_base.setOrigin(tf::Vector3(0,0,odom_position(2)));
+//    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base"));
 }
 
 void QuadrupedEstimation::LegPubTopic(ros::NodeHandle& _nn){
@@ -2258,7 +2695,7 @@ void QuadrupedEstimation::GetLinearVelFromJointvel() {
     Eigen::Vector3d min_vector_error;
     min_vector_error << 100,100,100;
     int min_index_a, min_index_b;
-    std::vector<int> foots;
+    std::vector<double> foots;
     foots.resize(4);
     for(int i = 0;i<4;i++)
       {
@@ -2272,10 +2709,11 @@ void QuadrupedEstimation::GetLinearVelFromJointvel() {
                 min_index_b = j;
               }
           }
-        if(foot_output.data[i] == 1)// && fabs(V_Jacob[i](0))<1 && fabs(V_Jacob[i](1))<1 && fabs(V_Jacob[i](2))<1)
-          foots[i] = 1;
-        else
-          foots[i] = 0;
+        //MXR:假设足端接触
+        //if(foot_output.data[i] == 1)// && fabs(V_Jacob[i](0))<1 && fabs(V_Jacob[i](1))<1 && fabs(V_Jacob[i](2))<1)
+          foots[i] = Contact_state.data[i];
+        //else
+          //foots[i] = 0;
       }
 
 
@@ -2311,18 +2749,22 @@ void QuadrupedEstimation::GetLinearVelFromJointvel() {
 //        odom_vel_inodom =  -(V_Jacob[0]  + V_Jacob[2] ) * 1/2;
 //    }
 //    odom_vel_inodom = -0.5*(V_Jacob[min_index_a] + V_Jacob[min_index_b]);
-    int number_of_contact = foots[0] + foots[1] + foots[2] + foots[3];
+    double number_of_contact = foots[0] + foots[1] + foots[2] + foots[3];
+    double weight0=foots[0]>0.8?1:0;
+    double weight1=foots[1]>0.8?1:0;
+    double weight2=foots[2]>0.8?1:0;
+    double weight3=foots[3]>0.8?1:0;
     if(number_of_contact > 0)
       {
-        odom_vel_inodom = -(foots[0] * V_Jacob[0] + foots[1] * V_Jacob[1] + foots[2] * V_Jacob[2] + foots[3] * V_Jacob[3])
+        odom_vel_inodom = -(weight0*foots[0]*V_Jacob[0] + weight1*foots[1]*V_Jacob[1] + weight2*foots[2]*V_Jacob[2] + weight3*foots[3]*V_Jacob[3])
             /number_of_contact;
-    //    cout << "odom_vel_inodom: "<< odom_vel_inodom << endl;
-        LinearVelocity imu_ang_vel = GetLinearVelFromIMUAng();
+        //cout << "odom_vel_inodom: "<< odom_vel_inodom << endl;
+        //LinearVelocity imu_ang_vel = GetLinearVelFromIMUAng();
 //        odom_vel_inodom = odom_vel_inodom + imu_ang_vel;
       }
 
 
-    GetVelInWorld(odom_vel_inodom);
+   GetVelInWorld(odom_vel_inodom);
 
 
     Eigen::Vector3d odom_tmp_v;
@@ -2335,20 +2777,31 @@ void QuadrupedEstimation::GetLinearVelFromJointvel() {
 
 //    odom_tmp_v << odom_vel(0)+imu_ang_vel(0), odom_vel(1)+imu_ang_vel(1), odom_vel(2)+imu_ang_vel(2);
     odom_tmp_v << odom_vel(0), odom_vel(1), odom_vel(2);
+    //odom_tmp_v<<odom_vel_inodom(0),odom_vel_inodom(1),odom_vel_inodom(2);
+    //cout<<odom_tmp_v<<endl;
 
     odom_vel = GetLinearVelFilter(odom_tmp_v);
+    // cout<<"+++++++++++++++++++++++++++++"<<endl;
+    // cout<<odom_vel<<endl;
+    // cout<<"++++++++++++++++++++++++++++++++"<<endl;
 }
 
 void QuadrupedEstimation::GetVelInWorld(LinearVelocity odomvel_odom){
     //rotation_matrix
-    Eigen::Matrix3d rotation_matrix_trans;
+    //Eigen::Matrix3d rotation_matrix_trans;
 //    use baselink_to_initodom
 //    odom2init_orientation = odom2init_orientation.normalized();//unit q
 //    rotation_matrix_trans = odom2init_orientation.toRotationMatrix();
 
 //    RPY_bw_q = RPY_bw_q.normalized();
-    rotation_matrix_trans = RPY_bw_q.toRotationMatrix();
+    //rotation_matrix_trans = RPY_bw_q.toRotationMatrix();
 //    cout << "rotation_matrix_trans: " << endl<< rotation_matrix_trans << endl;
+    Eigen::Quaterniond orient;
+    orient.x()= odom_orientation.x();
+    orient.y()= odom_orientation.y();
+    orient.z()= odom_orientation.z();
+    orient.w()= odom_orientation.w();
+    Eigen::Matrix3d rotation_matrix_trans = orient.normalized().toRotationMatrix();
     Eigen::Vector3d odom_vel_vec,legodom_vel_vec;
     odom_vel_vec  << odomvel_odom.vector();
     legodom_vel_vec = rotation_matrix_trans * odom_vel_vec;
@@ -2462,31 +2915,31 @@ void QuadrupedEstimation::QuadrupedOrientation(sensor_msgs::Imu& imu_in_) {
 
 void QuadrupedEstimation::GetQFromImu(const sensor_msgs::Imu& imu_output) {
 //    ROS_WARN("GetQFromKin...");
-    Eigen::Quaterniond imu_o;
-    imu_o.x() = imu_output.orientation.x;
-    imu_o.y() = imu_output.orientation.y;
-    imu_o.z() = imu_output.orientation.z;
-    imu_o.w() = imu_output.orientation.w;
+//    Eigen::Quaterniond imu_o;
+//    imu_o.x() = imu_output.orientation.x;
+//    imu_o.y() = imu_output.orientation.y;
+//    imu_o.z() = imu_output.orientation.z;
+//    imu_o.w() = imu_output.orientation.w;
 
-//    cout<< "imu_output: "<< imu_o.coeffs() << endl;
-//    四元输不能相加!!!//切记SO3是矩阵，是李群
-    imu_o.normalized();
-    Sophus::SO3 SO3_q(imu_o);
-//    Eigen::MatrixX3d rota_ma;
-//    rota_ma = imu_o.toRotationMatrix();
+////    cout<< "imu_output: "<< imu_o.coeffs() << endl;
+////    四元输不能相加!!!//切记SO3是矩阵，是李群
+//    imu_o.normalized();
+//    Sophus::SO3 SO3_q(imu_o);
+////    Eigen::MatrixX3d rota_ma;
+////    rota_ma = imu_o.toRotationMatrix();
 
-//    Eigen::Vector3d  q2rpy = QuaterniondToRPY(imu_o);
-//    cout << "before: " << "imu_yaw: " <<q2rpy(0) << "   imu_pitch: " <<q2rpy(1) << " imu_roll: " << q2rpy(2)<< endl;
+////    Eigen::Vector3d  q2rpy = QuaterniondToRPY(imu_o);
+////    cout << "before: " << "imu_yaw: " <<q2rpy(0) << "   imu_pitch: " <<q2rpy(1) << " imu_roll: " << q2rpy(2)<< endl;
 
-    Eigen::Vector3d update_so3(1e-10, 1e-10, 1e-10); //假设更新量为这么多
-    Sophus::SO3 SO3_updated = Sophus::SO3::exp(update_so3)*SO3_q;
-    RPY_bw_q = Eigen::Quaterniond(SO3_updated.matrix());
-//    cout << "RPY_bw_q: " <<RPY_bw_q.coeffs() << endl;
-//    odom_orientation.vector() <<  RPY_bw_q.w(),RPY_bw_q.x(),RPY_bw_q.y(),RPY_bw_q.z();
-    odom_orientation.w() = RPY_bw_q.w();
-    odom_orientation.x() = RPY_bw_q.x();
-    odom_orientation.y() = RPY_bw_q.y();
-    odom_orientation.z() = RPY_bw_q.z();
+//    Eigen::Vector3d update_so3(1e-10, 1e-10, 1e-10); //假设更新量为这么多
+//    Sophus::SO3 SO3_updated = Sophus::SO3::exp(update_so3)*SO3_q;
+//    RPY_bw_q = Eigen::Quaterniond(SO3_updated.matrix());
+////    cout << "RPY_bw_q: " <<RPY_bw_q.coeffs() << endl;
+////    odom_orientation.vector() <<  RPY_bw_q.w(),RPY_bw_q.x(),RPY_bw_q.y(),RPY_bw_q.z();
+//    odom_orientation.w() = RPY_bw_q.w();
+//    odom_orientation.x() = RPY_bw_q.x();
+//    odom_orientation.y() = RPY_bw_q.y();
+//    odom_orientation.z() = RPY_bw_q.z();
 //    cout<< "odom_orientation: "<< odom_orientation << endl;
 //    odom_YPR = QuaterniondToRPY(RPY_bw_q);
 //    cout << "after: " <<"imu_yaw: " <<odom_YPR(0) << "   imu_pitch: " <<odom_YPR(1) << "    imu_roll: " << odom_YPR(2)<< endl;

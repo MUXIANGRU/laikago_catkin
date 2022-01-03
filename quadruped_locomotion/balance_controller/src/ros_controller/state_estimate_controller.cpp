@@ -211,6 +211,7 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
     robot_state_ptr->setCurrentLimbJoints(all_joint_positions);
     robot_state_ptr->setCurrentLimbJointVelocities(all_joint_velocities);
 
+
     //    std::vector<bool> real_c
     std_msgs::Float64MultiArray foot_msg;
     foot_msg.data.resize(4);
@@ -278,12 +279,11 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
 //    }
 //    else
 //        PUB_THIS_FRAME = false;
-
-//    if(LegOdom->ProcessSensorData()){
-////        ROS_WARN("Get updata state estimation...");
-//    }else{
-////        ROS_ERROR("Process Error...");
-//    }
+    if(LegOdom->ProcessSensorData()){
+            ROS_WARN_ONCE("Get updata state estimation...");
+    }else{
+            ROS_ERROR_ONCE("Process Error...");
+    }
 
 //    OdomState = LegOdom->GetStopStateOdom();//PVQ
 //    std::cout <<"OdomState: " << OdomState << std::endl;
@@ -294,9 +294,15 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
         robot_state_handle.position_[0] = LegOdom->odom_position.x();
         robot_state_handle.position_[1] = LegOdom->odom_position.y();
         robot_state_handle.position_[2] = LegOdom->odom_position.z();
-        robot_state_handle.linear_velocity_[0] = LegOdom->odom_vel.x();
-        robot_state_handle.linear_velocity_[1] = LegOdom->odom_vel.y();
-        robot_state_handle.linear_velocity_[2] = LegOdom->odom_vel.z();
+        //cout<<"robot_state_handle.position_[0]    "<<robot_state_handle.position_[0] <<endl;
+        //cout<<"robot_state_handle.position_[1]    "<<robot_state_handle.position_[1] <<endl;
+        //cout<<"robot_state_handle.position_[2]    "<<robot_state_handle.position_[2] <<endl;
+//        robot_state_handle.linear_velocity_[0] = LegOdom->odom_vel.x();
+//        robot_state_handle.linear_velocity_[1] = LegOdom->odom_vel.y();
+//        robot_state_handle.linear_velocity_[2] = LegOdom->odom_vel.z();
+//        cout<<"robot_state_handle.linear_velocity_[0]   "<<robot_state_handle.linear_velocity_[0]<<endl;
+//        cout<<"robot_state_handle.linear_velocity_[1]   "<<robot_state_handle.linear_velocity_[1]<<endl;
+//        cout<<"robot_state_handle.linear_velocity_[2]   "<<robot_state_handle.linear_velocity_[2]<<endl;
         robot_state_handle.orientation_[0] = LegOdom->odom_orientation.w();//w,x,y,z
         robot_state_handle.orientation_[1] = LegOdom->odom_orientation.x();
         robot_state_handle.orientation_[2] = LegOdom->odom_orientation.y();
@@ -316,6 +322,9 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
         robot_state_handle.angular_velocity_[0] = real_time_factor*LegOdom->imu_output.angular_velocity.x;
         robot_state_handle.angular_velocity_[1] = real_time_factor*LegOdom->imu_output.angular_velocity.y;
         robot_state_handle.angular_velocity_[2] = real_time_factor*LegOdom->imu_output.angular_velocity.z;
+        robot_state_handle.linear_velocity_[0] = real_time_factor*LegOdom->odom_vel.x();
+        robot_state_handle.linear_velocity_[1] = real_time_factor*LegOdom->odom_vel.y();
+        robot_state_handle.linear_velocity_[2] = real_time_factor*LegOdom->odom_vel.z();
 //        std::cout<<"I want to know the angular velocity: "<<robot_state_handle.angular_velocity_[0]<<std::endl;
 //        std::cout<<"I want to know the angular velocity: "<<robot_state_handle.angular_velocity_[1]<<std::endl;
 //        std::cout<<"I want to know the angular velocity: "<<robot_state_handle.angular_velocity_[2]<<std::endl;

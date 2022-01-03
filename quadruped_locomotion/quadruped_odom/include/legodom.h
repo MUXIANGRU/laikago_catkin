@@ -7,21 +7,34 @@
 TODO 1.data log
     2.
 */
-
+#include <sophus/so3.hpp>
+#include <sophus/se3.hpp>
+#include "pinocchio/fwd.hpp"
+#include <gmbd_observer/gmbd_observer.h>
+#include <gmbd_observer/contact_estimation.h>
 #include <ros/ros.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <Eigen/Dense>
 #include <Eigen/Core>
-#include <sophus/so3.hpp>
-#include <sophus/se3.hpp>
 #include "kindr/Core"
 #include <queue>
 #include <boost/thread.hpp>
 #include <tic_toc.h>
+//#include <pinocchio/fwd.hpp>
 
 //sensor
+//#include "gmbd_observer/contact_estimation.h"
+//#include "pinocchio/fwd.hpp"
+//#include "pinocchio/parsers/urdf.hpp"
+//#include "pinocchio/algorithm/jacobian.hpp"
+//#include "pinocchio/algorithm/joint-configuration.hpp"
+//#include "pinocchio/algorithm/kinematics.hpp"
+//#include "pinocchio/algorithm/crba.hpp"
+//#include "pinocchio/algorithm/rnea.hpp"
+//#include <gmbd_observer/gmbd_observer.h>
+
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <sensor_msgs/Imu.h>
@@ -45,6 +58,7 @@ TODO 1.data log
 #include <sim_assiants/FootContacts.h>
 #include <free_gait_msgs/RobotState.h>
 #include "free_gait_core/free_gait_core.hpp"
+
 
 //#include <message_filters/subscriber.h>
 //#include <message_filters/synchronizer.h>
@@ -81,6 +95,7 @@ public:
     void RobotStateLoad();
     //*********** position ***********//
     //pose -kin
+    void getKINposition();
     void QuadrupedPosition();//base_to_world
     void GetPositionAddFromInit();
     void GetPositionAddEveryStep();
@@ -183,23 +198,44 @@ public:
     std_msgs::Float64MultiArray foot_out;
     std_msgs::Float64MultiArray gazebo_out;
     std_msgs::Float64MultiArray legodom_error_cal;
+    std_msgs::Float64MultiArray Contact_state;
     std::string _cal_vel_way, _orientation_way, _cal_position_way, imu_topic_name_;
 
     ros::Publisher legodom_odom_pub,legodom_error_pub,legodom_map_pub, legodom_init_pub,legPose_pub,gazebo_pub,imuvel_pub;
 
     ros::Time init_time;
+
+    RotationQuaternion base_orientation;
+    geometry_msgs::PoseWithCovarianceStamped foot_odom;
+    Eigen::Vector3d P_LF,P_RF,P_RH,P_LH,pre_P_LF,pre_p_RF,pre_P_RH,pre_P_LH,
+    P_LF_w,P_RF_w,P_RH_w,P_LH_w,P_LF_r,P_RF_r,P_RH_r,P_LH_r;
+    std_msgs::Float64MultiArray footpos_delta,footpos_world,gazebo_contact;
+    Eigen::Vector3d LF_foot_Pos_delta,RF_foot_Pos_delta,RH_foot_Pos_delta,LH_foot_Pos_delta;
+    double N_contact,z_delta,x_delta,y_delta,pre_pos;
+    Eigen::Vector3d POSE_IN_WORLD;
+    sim_assiants::FootContact lf_foot_contact_, rf_foot_contact_, rh_foot_contact_, lh_foot_contact_;
+    sim_assiants::FootContacts foot_contacts_;
+
+    geometry_msgs::WrenchStamped estimate_torque_lf, estimate_torque_rf, estimate_torque_rh, estimate_torque_lh;
 private:
     ros::NodeHandle nodeHandle_, nodeh_;
     ros::Subscriber imu_sub,joints_sub,foot_state_sub, gazebo_sub,robot_state_sub,modelStatesSub_;
-    ros::Subscriber pronto_pose_sub,pronto_twist_sub,init_pose_sub,LegOdom_sub_;
+    ros::Subscriber pronto_pose_sub,pronto_twist_sub,init_pose_sub,LegOdom_sub_,Contact_sub,joint_state_sub,gazeboC_sub,robot_phase_sub;
+    ros::Publisher footpos_pub,contactpro_pub,footContact_pub;
+    ros::Publisher estimate_torque_lf_pub,estimate_torque_rf_pub,estimate_torque_lh_pub,estimate_torque_rh_pub;
     //main function
     std::shared_ptr<free_gait::State> robot_state_;
+    std::unique_ptr<gmbd_obs::Gmbd_obs> gmbd_obs_lf_;
+    std::unique_ptr<gmbd_obs::Gmbd_obs> gmbd_obs_rf_;
+    std::unique_ptr<gmbd_obs::Gmbd_obs> gmbd_obs_lh_;
+    std::unique_ptr<gmbd_obs::Gmbd_obs> gmbd_obs_rh_;
+    std::shared_ptr<ContactEstimation> contact_ptr_;
     double _cal_fator_x, _cal_fator_y, _cal_fator_z, real_time_factor;
     //tf
     geometry_msgs::TransformStamped odom2map_tf,base2odom_tf,base2map_tf;
     geometry_msgs::PoseWithCovarianceStamped Pose_stamped_;
     tf::TransformBroadcaster odom2map_broadcaster,base2odom_broadcaster,base2map_broadcaster,tfBoardcaster_;
-    tf::Transform odom_to_footprint, footprint_to_base;
+    tf::Transform odom_to_footprint, footprint_to_base,base_to_odom;
     //    callback
     void imuCb(const sensor_msgs::Imu::ConstPtr& imu_msg);
     void jointsCb(const sensor_msgs::JointState::ConstPtr& joint_msg);
@@ -207,11 +243,16 @@ private:
     void gazeboCb(const nav_msgs::Odometry::ConstPtr& gazebo_msg);
     void robotstateCb(const free_gait_msgs::RobotState::ConstPtr& robotstate_msg);
     void modelStatesCallback(const gazebo_msgs::ModelStates::ConstPtr& modelStatesMsg);
+    void Gmbd_obs_Callback(const sensor_msgs::JointState::ConstPtr &robot_state_);
+    void robot_phaseCB(const free_gait_msgs::RobotState::ConstPtr &msg);
+    void computeContactPro();
 
     void InitCB(const geometry_msgs::PoseWithCovarianceStamped& pose);
     void prontoPoseCB(const geometry_msgs::PoseWithCovarianceStamped& pose);
     void prontoTwistCB(const geometry_msgs::TwistWithCovarianceStamped& twist);
     void KinCB(const geometry_msgs::PoseWithCovarianceStamped& pose);
+    void ConCB(const std_msgs::Float64MultiArray& msg);
+    void gazeboConCB(const std_msgs::Float64MultiArray& msg);
 
     //just for time at sama time
     //    void sensor_callback(const sensor_msgs::ImuConstPtr &imu_msg,

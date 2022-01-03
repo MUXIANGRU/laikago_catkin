@@ -41,6 +41,7 @@ public:
     nodeHandle_.getParam("/kinematics_control",is_kinematics_control);
     nodeHandle_.getParam("/free_gait/stop_execution_service", stop_service_name_);
     nodeHandle_.getParam("/free_gait/pause_execution_service", pause_service_name_);
+    nodeHandle_.param("/use_auto_planning", use_auto_planning, bool(false));
 //    nodeHandle_.getParam("/gait_generate/")
 //    ROS_ERROR("In action server thread");
     if(use_gazebo){
@@ -236,8 +237,11 @@ public:
             gait_generate_client_.copyRobotState(AdapterRos_.getAdapter().getState());
 // YG：步态时序的计算,dt=0.01
             gait_generate_client_.advance(dt);
+            if(use_auto_planning){
+                gait_generate_client_.updateVelocityCommand();
+            }
 // YG:计算具体的落脚点，在哪个坐标系下
-            gait_generate_client_.generateFootHolds("foot_print");
+            gait_generate_client_.generateFootHolds("odom");
 // YG：获得身体的位姿，身体期望的速度和角速度,为输出参数
             gait_generate_client_.updateBaseMotion(desired_linear_velocity_, desired_angular_velocity_);
 //            ROS_WARN_STREAM("Desired Velocity :"<<desired_linear_velocity_<<endl);
@@ -296,9 +300,9 @@ public:
       }
     if(request.data == true){
         is_start_gait = true;
-        parameters->footstepParameters.minimumDuration_ = 0.3;
-        parameters->baseTargetParameters.minimumDuration = 0.3;
-        gait_generate_client_.initializeTrot(0.4,0.4);
+        parameters->footstepParameters.minimumDuration_ = 0.35;
+        parameters->baseTargetParameters.minimumDuration = 0.45;
+        gait_generate_client_.initializeTrot(0.35,0.45);
 //        gait_generate_client_.initializePace(0.45, 3*0.5);
       ROS_INFO("START GAIT....");
       }
@@ -394,6 +398,7 @@ private:
   ros::ServiceServer pause_service_server_, stop_service_server_,
   gait_start_server_, limb_configure_switch_server_, pace_start_server_, joy_control_server_, crawl_start_server_;
   std::string pause_service_name_, stop_service_name_;
+  bool use_auto_planning;
   bool use_gazebo, is_pause, is_stop, is_kinematics_control, is_start_gait, is_joy_control;
   /**
    * @brief r_mutex_

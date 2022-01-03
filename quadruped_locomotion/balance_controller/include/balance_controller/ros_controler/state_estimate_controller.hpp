@@ -7,7 +7,7 @@
  *  Institute: Harbin Institute of Technology, Shenzhen
  */
 #pragma once
-
+#include "legodom.h"
 #include "controller_interface/controller.h"
 #include "balance_controller/ros_controler/robot_state_interface.hpp"
 #include <pluginlib/class_list_macros.hpp>
@@ -18,7 +18,7 @@
 #include "sensor_msgs/Imu.h"
 
 #include "urdf/model.h"
-#include "legodom.h"
+
 #include "kindr_ros/kindr_ros.hpp"
 #include "state_switcher/StateSwitcher.hpp"
 //#include "quadruped_odom/legodom.h"

@@ -30,12 +30,13 @@ void RobotControl()
     udp.GetState(state);
     mylcm.Send(state);
 
-     std::cout<<"RF_HAA"<<std::endl;
-     printf("%f\n", state.motorState[FR_0].position);
-     std::cout<<"RF_HFE"<<std::endl;
-     printf("%f\n", state.motorState[FR_1].position);
-     std::cout<<"RF_KFE"<<std::endl;
-     printf("%f\n", state.motorState[FR_2].position);
+//     std::cout<<"RF_HAA"<<std::endl;
+//     printf("%f\n", state.motorState[FR_0].position);
+//     std::cout<<"RF_HFE"<<std::endl;
+//     printf("%f\n", state.motorState[FR_1].position);
+//     std::cout<<"RF_KFE"<<std::endl;
+//     printf("%f\n", state.motorState[FR_2].position);
+
 
     mylcm.Get(cmd);
     udp.Send(cmd);

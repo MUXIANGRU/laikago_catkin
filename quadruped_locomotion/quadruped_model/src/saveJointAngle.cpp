@@ -32,13 +32,13 @@ std::vector<JointPositionsLimb> rf_joint_positions;
 std::vector<JointPositionsLimb> lh_joint_positions;
 std::vector<JointPositionsLimb> rh_joint_positions;
 std::vector<quadruped_model::JointPositions> joint_positions_total;
-
+int count11;
 void SaveAsFile(const std::vector<JointPositions>& joint_position_vector)
 {
     std::ofstream invFile;
-    std::cout << "Saving the data" << std::endl;
+    //std::cout << "Saving the data" << std::endl;
     std::string file_name;
-    file_name = "calculated_crawl.txt";
+    file_name = "calculated_crawl_two.txt";
     invFile.open(file_name);
     if(invFile.fail())
     {
@@ -54,7 +54,7 @@ void SaveAsFile(const std::vector<JointPositions>& joint_position_vector)
     invFile.close();
     file_name = "";
 
-    std::cout << "success store the file " << std::endl;
+    //std::cout << "success store the file " << std::endl;
 }
 
 void jsCB(const sensor_msgs::JointState::ConstPtr& jsmsg){
@@ -65,21 +65,25 @@ void jsCB(const sensor_msgs::JointState::ConstPtr& jsmsg){
         joint_positions(1) = jsmsg->position[1];
         joint_positions(2) = jsmsg->position[2];
 
-        joint_positions(6) = jsmsg->position[9];//RH
-        joint_positions(7) = jsmsg->position[10];
-        joint_positions(8) = jsmsg->position[11];
+        joint_positions(6) = jsmsg->position[3];//LH
+        joint_positions(7) = jsmsg->position[4];
+        joint_positions(8) = jsmsg->position[5];
 
         joint_positions(3) = jsmsg->position[6];//RF
         joint_positions(4) = jsmsg->position[7];
         joint_positions(5) = jsmsg->position[8];
 
-        joint_positions(9) = jsmsg->position[3];//LH
-        joint_positions(10) = jsmsg->position[4];
-        joint_positions(11) = jsmsg->position[5];
+        joint_positions(9) = jsmsg->position[9];//RH
+        joint_positions(10) = jsmsg->position[10];
+        joint_positions(11) = jsmsg->position[11];
 
+       // count11++;
+       // std::cout << "count   " <<count11<< std::endl;
+        //joint_positions_total[count11]=joint_positions;
         joint_positions_total.push_back(joint_positions);
         std::cout << "size is " << joint_positions_total.size() << std::endl;
-        SaveAsFile(joint_positions_total);
+        if(joint_positions_total.size()>40000) SaveAsFile(joint_positions_total);
+        //joint_positions_total.clear();
 
 //      }
 }
@@ -88,7 +92,8 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, "saveJointAngle");
     ros::NodeHandle nh;
-
+    //joint_positions_total.resize(10000);
+    //count11=0;
     js_sub = nh.subscribe<sensor_msgs::JointState>("/joint_states",1,&jsCB);
 
 

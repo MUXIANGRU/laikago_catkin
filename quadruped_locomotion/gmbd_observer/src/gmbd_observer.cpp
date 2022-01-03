@@ -112,16 +112,16 @@
          p_k = M*QDot;
          alpha_k = beta*p_k+S*torque_j+C.transpose()*QDot-G;
          torque_d = (gamma-1)*alpha_k+beta*(p_k-gamma*p_k_prev)+gamma*torque_d_prev;
-         cout<<"=======estimation torque========"<<endl<<torque_d<<endl;
-         cout<<"jacobian::"<<endl<<jacobian<<endl;
-         cout<<"jacobian.transpose().inverse()"<<endl<<jacobian.transpose().inverse()<<endl;
+         //cout<<"=======estimation torque========"<<endl<<torque_d<<endl;
+         //cout<<"jacobian::"<<endl<<jacobian<<endl;
+         //cout<<"jacobian.transpose().inverse()"<<endl<<jacobian.transpose().inverse()<<endl;
          disturbance_force = jacobian.transpose().inverse()*torque_d;
          applied_torque_approximation = jacobian.transpose()*disturbance_force+G;
          torque_d_prev = torque_d;
          p_k_prev = p_k;
-         cout<<"disturbance_force :\n"<< disturbance_force <<endl;
-         cout<<"applied_torque_approximation :\n"<<applied_torque_approximation <<endl;
-         cout<<"torque_j is:\n"<<torque_j<<endl;
+         //cout<<"disturbance_force :\n"<< disturbance_force <<endl;
+         //cout<<"applied_torque_approximation :\n"<<applied_torque_approximation <<endl;
+         //cout<<"torque_j is:\n"<<torque_j<<endl;
          return true;
      }
  }
@@ -133,7 +133,7 @@
      pinocchio::crba(leg_model,data_m,Q);
      data_m.M.triangularView<Eigen::StrictlyLower>() = data_m.M.transpose().triangularView<Eigen::StrictlyLower>();
      M = data_m.M;
-     cout<<"M is:\n"<<M<<endl;
+    // cout<<"M is:\n"<<M<<endl;
      return true;
  }
 
@@ -144,7 +144,7 @@
      QDot = qdot;
      pinocchio::computeCoriolisMatrix(leg_model,data_c,Q,QDot);
      C = data_c.C;
-     cout<<"C is:\n"<<C<<endl;
+     //cout<<"C is:\n"<<C<<endl;
      return true;
  }
 
@@ -154,7 +154,7 @@
      Q = q;
      pinocchio::computeGeneralizedGravity(leg_model,data_g,Q);
      G = data_g.g;
-     cout<<"G is:\n"<<G<<endl;
+     //cout<<"G is:\n"<<G<<endl;
      return true;
  }
  bool Gmbd_obs::compute_tau_j(Eigen::VectorXd &tau){
@@ -181,7 +181,7 @@
      for(int i = 0; i<number_of_joints; i++)
      {
        joints(i) = joint_positions(i);
-       cout<<"joint_lf is:"<<endl<<joints(i)<<endl;
+       //cout<<"joint_lf is:"<<endl<<joints(i)<<endl;
    //    cout<<"the "<<i<<"th joint: "<<joints(i)<<endl;
      }
    //  cout<<LF_Chain.getNrOfJoints()<<" joint rows"<<joints.rows()<<" joint columns"<<joints.columns()<<endl;

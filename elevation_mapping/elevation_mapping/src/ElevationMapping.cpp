@@ -345,9 +345,6 @@ void ElevationMapping::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr
 
   ROS_DEBUG("ElevationMap received a point cloud (%i points) for elevation mapping.", static_cast<int>(pointCloud->size()));
 
-  std::cout<<"========================"<<std::endl;
-  std::cout<<lastPointCloudUpdateTime_<<std::endl;
-  std::cout<<"========================"<<std::endl;
   // Get robot pose covariance matrix at timestamp of point cloud.
   Eigen::Matrix<double, 6, 6> robotPoseCovariance;
   robotPoseCovariance.setZero();

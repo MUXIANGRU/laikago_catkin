@@ -24,6 +24,7 @@
   <depend>eigen</depend>
   <depend>foothold_planner</depend>
   <depend>foothold_planner_msgs</depend>
+  
 
   <export>
     <free_gait_ros plugin="${prefix}/plugin_description.xml"/>

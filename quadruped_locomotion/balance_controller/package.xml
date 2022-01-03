@@ -60,6 +60,8 @@
   <build_depend>controller_interface</build_depend>
   <build_depend>pluginlib</build_depend>
   <build_depend>gazebo_dev</build_depend>
+  <build_depend>gmbd_observer</build_depend>
+  <exec_depend>gmbd_observer</exec_depend>
   <exec_depend>gazebo_dev</exec_depend>
   <exec_depend>pluginlib</exec_depend>
   <exec_depend>controller_interface</exec_depend>
@@ -84,6 +86,7 @@
   <depend>ros_ethercat_driver</depend>
   <depend>laikago_ros_control</depend>
   <depend>dynamic_reconfigure</depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

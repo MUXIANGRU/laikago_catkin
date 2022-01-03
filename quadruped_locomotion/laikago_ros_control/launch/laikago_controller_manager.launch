@@ -4,8 +4,8 @@
   <arg name="kinect_enabled" default="true"/>
   <arg name="robot_namespace" default="/"/>
 
-  <include file="$(find xsens_driver)/launch/xsens_driver.launch">
-  </include>
+  <!-- <include file="$(find xsens_driver)/launch/xsens_driver.launch"> 
+  </include> -->
   <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find simpledog)/urdf/quadruped_model.urdf.xacro'
   inorder
   robot_namespace:=$(arg robot_namespace)
@@ -27,7 +27,7 @@
 
   <param name="/legodom/use_gazebo_feedback" value="false"/>
 
-  <param name="/real_time_factor" value="1" />
+  <param name="/real_time_factor" value="0.35" />
   <param name="/cal_fator_x" value="1.0" />
   <param name="/cal_fator_y" value="1.0" />
   <param name="/cal_fator_z" value="1.0" />
@@ -39,11 +39,11 @@
 <!-- </include> -->
 <!-- <remap from="/imu/data" to="/imu" /> -->
 <param name="/imu_topic_name" value="/imu/data" />
-<param name="/use_kin_state" value="true" />
+<param name="/use_kin_state" value="false" />
 <param name="/use_pronto_pose" value="false" />
 <param name="/use_pronto_twist" value="true" />
 <param name="/use_imu_orientation" value="true" />
-
+<param name="/my_log" value="true" />
 <rosparam command="load" file="$(find balance_controller)/config/control_laikago.yaml" />
 <rosparam command="load" file="$(find balance_controller)/config/controller_gains.yaml" />
     <!-- Load joint controller configurations from YAML file to parameter server -->

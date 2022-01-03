@@ -59,6 +59,10 @@ using namespace free_gait;
         ROS_ERROR("Can't get parameter '/use_single_step_planning', nodehandle namespace is %s", nodeHandle_.getNamespace().c_str());
       }
 
+    nodeHandle_.param("/yawThreshold_", yawThreshold_, double(0.05));
+    nodeHandle_.param("/disThreshold_", disThreshold_, double(0.10));
+
+
 
     initialize();
     footstepOptimization.reset(new FootstepOptimization(nodeHandle_));
@@ -66,10 +70,14 @@ using namespace free_gait;
     //MXR::NOTE: test for single step planning
     foot_contact.data.resize(4);
     single_step_foothold.footholds.resize(4);
+    last_step_foothold.resize(4);
     gazebo_contactsub_ = nodeHandle_.subscribe("/gazebo/foot_contact_state",1,&GaitGenerateClient::gazeboCallback, this);
     single_step_planningsub_ = nodeHandle_.subscribe("/foothold_planner/global_footholds",1,&GaitGenerateClient::footholdCallback, this);
     triggerPlanningClient = nodeHandle_.serviceClient<foothold_planner::GlobalFootholdPlan>("/foothold_planner/plan_global_footholds");
 
+
+    //MXR::NOTE: test for global path tracking
+    pathFootprintSubscriber_ = nodeHandle_.subscribe("/se2_planner_node/ompl_rs_planner_ros/nav_msgs_path", 1, &GaitGenerateClient::footPrintPathCallback, this);
 
 
 
@@ -103,12 +111,154 @@ using namespace free_gait;
 
   }
 
+  void GaitGenerateClient::footPrintPathCallback(const nav_msgs::Path::ConstPtr &msg){
+      if(fixed_path.poses.empty()){
+         fixed_path.poses = msg->poses;
+         fixed_path.header = msg->header;
+      }
+  }
+  bool GaitGenerateClient::checkSegmentIsArrived()
+  {
+      double currentX = currentPoint_.position.x;
+      double currentY = currentPoint_.position.y;
+      double segmentX = nextNearestPoint_.position.x;
+      double segmentY = nextNearestPoint_.position.y;
+      double disError, disError2;
+//      disError2 = std::abs((pow(segmentX, 2) + pow(segmentY, 2))
+//              - (pow(currentX, 2) + pow(currentY, 2)));
+      disError2 = pow((segmentX-currentX),2)+pow((segmentY-currentY),2);
+      disError = pow(disError2, 0.5);
+      std::cout<<"------------------------"<<std::endl;
+      std::cout<<"disterror   "<<disError<<std::endl;
+      std::cout<<"------------------------"<<std::endl;
+      if(disError <=  disThreshold_)
+          segmentIsArrived = true;
+      else
+          segmentIsArrived = false;
+
+      return true;
+  }
+  void GaitGenerateClient::findNextNearestPoint()
+  {
+//      std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+//      std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+      geometry_msgs::PoseStamped segment_;
+      segment_ = fixed_path.poses.front();
+      fixed_path.poses.erase(fixed_path.poses.begin());
+      nextNearestPoint_.position.x = segment_.pose.position.x;
+      nextNearestPoint_.position.y = segment_.pose.position.y;
+      nextNearestPoint_.orientation.w = segment_.pose.orientation.w;
+      nextNearestPoint_.orientation.x = segment_.pose.orientation.x;
+      nextNearestPoint_.orientation.y = segment_.pose.orientation.y;
+      nextNearestPoint_.orientation.z = segment_.pose.orientation.z;
+
+
+  }
+  void GaitGenerateClient::updateVelocityCommand()
+  {
+      currentPoint_.position.x = robot_state_.getPositionWorldToBaseInWorldFrame().x();
+      currentPoint_.position.y = robot_state_.getPositionWorldToBaseInWorldFrame().y();
+
+      tf::Quaternion quaternion_;
+      quaternion_.setW(robot_state_.getOrientationBaseToWorld().w());
+      quaternion_.setX(robot_state_.getOrientationBaseToWorld().x());
+      quaternion_.setY(robot_state_.getOrientationBaseToWorld().y());
+      quaternion_.setZ(robot_state_.getOrientationBaseToWorld().z());
+      //tf::quaternionMsgToTF(fakePose_.pose.pose.orientation, quaternion_);
+      double roll, pitch, yaw;
+      tf::Matrix3x3(quaternion_).getRPY(roll, pitch, yaw);
+      current_yaw = yaw;
+
+      tf::Quaternion quaternion_target;
+      quaternion_target.setW(nextNearestPoint_.orientation.w);
+      quaternion_target.setX(nextNearestPoint_.orientation.x);
+      quaternion_target.setY(nextNearestPoint_.orientation.y);
+      quaternion_target.setZ(nextNearestPoint_.orientation.z);
+      //tf::quaternionMsgToTF(fakePose_.pose.pose.orientation, quaternion_);
+      double roll_tar, pitch_tar, yaw_tar;
+      tf::Matrix3x3(quaternion_target).getRPY(roll_tar, pitch_tar, yaw_tar);
+      target_yaw = yaw_tar;
+//      std::cout<<"===================================="<<std::endl;
+//      std::cout<<"currentPoint   "<<currentPoint_<<std::endl;
+//      std::cout<<"currentYaw    "<<current_yaw<<std::endl;
+//      std::cout<<"===================================="<<std::endl;
+
+      double segment_yaw; // segment yaw
+      double currentX = currentPoint_.position.x;
+      double currentY = currentPoint_.position.y;
+      double segmentX = nextNearestPoint_.position.x;
+      double segmentY = nextNearestPoint_.position.y;
+
+      segment_yaw = std::atan2((segmentY - currentY), (segmentX - currentX));
+      //if(use_auto_planning){
+          std::cout<<"===================================="<<std::endl;
+          std::cout<<"segment_yaw   "<<segment_yaw<<std::endl;
+          std::cout<<"yaw error   "<<(segment_yaw - current_yaw)<<std::endl;
+          std::cout<<"target_yaw   "<<target_yaw<<std::endl;
+          std::cout<<"===================================="<<std::endl;
+      //}
+
+
+      if(std::abs(segment_yaw - current_yaw) > yawThreshold_)
+      {
+          std::cout<<"comming there!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
+          cmd_.linear.x = 0.0;
+          cmd_.linear.y = 0.0; // robot stop when rotate.
+          if(segment_yaw > current_yaw)
+              cmd_.angular.z = 0.2;
+          else
+              cmd_.angular.z = -0.2;
+
+          //baseVelocityCommandPublisher_.publish(cmd_);
+          //sleep(1);
+      }else{
+          cmd_.angular.z = 0.0;
+          cmd_.linear.x = 0.05;
+          cmd_.linear.y = 0.0;
+      }
+
+
+
+      //if(use_auto_planning){
+          desired_linear_velocity_(0) = cmd_.linear.x;
+          desired_linear_velocity_(1) = cmd_.linear.y;
+          desired_linear_velocity_(2) = cmd_.linear.z;
+
+          desired_angular_velocity_(0) = cmd_.angular.x;
+          desired_angular_velocity_(1) = cmd_.angular.y;
+          desired_angular_velocity_(2) = cmd_.angular.z;
+      //}
+
+
+
+
+      //baseVelocityCommandPublisher_.publish(cmd_);
+
+//      if(std::abs(currentX)<0.01&&std::abs(currentY)<0.01){
+//          segmentIsArrived = true;
+//      }
+      checkSegmentIsArrived();
+      if(segmentIsArrived){
+         // std::cout<<"true!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
+          findNextNearestPoint();
+
+      }
+
+      if(nextNearestPoint_.position.x!=0){
+          std::cout<<"===================================="<<std::endl;
+          std::cout<<"nextNearestPoint_   "<<nextNearestPoint_<<std::endl;
+          //std::cout<<"currentYaw    "<<current_yaw<<std::endl;
+          std::cout<<"===================================="<<std::endl;
+      }
+
+      //ROS_INFO_STREAM_THROTTLE(5, "next segment " << nextNearestPoint_.x << nextNearestPoint_.y << std::endl);
+  }
   void GaitGenerateClient::initialize()
   {
     surface_normal.vector.x = 0.0;
     surface_normal.vector.y = 0.0;
     surface_normal.vector.z = 1.0;
-    height_ = 0.37;
+    height_ = 0.38;
     step_number = 0;
     sigma_st_0 = 0.8;
     sigma_st_1 = 0.8;
@@ -381,7 +531,7 @@ using namespace free_gait;
     hip_dispacement.emplace(LimbEnum::LH_LEG, Position(0,step_displacement,0));
     hip_dispacement.emplace(LimbEnum::RH_LEG, Position(0,-step_displacement,0));
 
-    height_ = 0.37;
+    height_ = 0.38;
 //    step_msg_.base_auto.resize(1);
 //    step_msg_.base_target.resize(1);
     limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
@@ -624,8 +774,9 @@ using namespace free_gait;
 //              }
 //            displace_in_footprint = Position(0.5*t_stance_*desired_vel2D);
 //YG：动态行走落脚点生成公式，footprint是baselink坐标系的一个投影，下面的代码里面有一部分是没用的
-            displace_in_footprint = Position(0.5*t_stance_*desired_vel2D
-                                                 + sqrt(z_hip/9.8) * (current_vel2D - desired_vel2D));
+            displace_in_footprint = Position(0.5*t_stance_*desired_vel2D+sqrt(z_hip/9.8)* (current_vel2D - desired_vel2D));
+            //+ sqrt(z_hip/9.8) * (current_vel2D - desired_vel2D)
+            std::cout<<"displace    "<<displace_in_footprint<<std::endl;
 
             if(pace_flag || crawl_flag)
               {
@@ -641,7 +792,7 @@ using namespace free_gait;
 //            if(displace_in_footprint.y()<-0.2)
 //              displace_in_footprint.y() = -0.2;
 //YG:为什么把z值设置为0.02？应该是因为足端是个球，考虑了足端半径。TODO:可以考虑改成0试一试。
-            displace_in_footprint(2) = 0.02;
+            displace_in_footprint(2) = 0.025;
             Position displace_in_baselink = displace_in_footprint;
 //            displace_in_baselink(2) = -height_+ 0.025;
 
@@ -653,6 +804,7 @@ using namespace free_gait;
             Position hip_in_odom = robot_state_.getPositionWorldToBaseInWorldFrame() +
                 robot_state_.getOrientationBaseToWorld().rotate(robot_state_.getPositionBaseToHipInBaseFrame(limb));
             hip_in_odom(2) = 0.0; //project to floor plane
+           // std::cout<<"hip_in_odom    "<<hip_in_odom<<std::endl;
 
             Position foot_in_base = robot_state_.getPositionBaseToFootInBaseFrame(limb);
 //            Position hip_in_base = robot_state_.getPositionBaseToHipInBaseFrame(limb) + hip_dispacement.at(limb);
@@ -680,6 +832,7 @@ using namespace free_gait;
             //            target_in_footprint(2) = 0.0;
 //MXR::NOTE target_in_base not used
             Position target_in_odom = hip_in_odom + displace_in_odom;
+            //std::cout<<"target_in_odom   "<<target_in_odom<<std::endl;
             Position target_in_base =robot_state_.getOrientationBaseToWorld().inverseRotate(target_in_odom - robot_state_.getPositionWorldToBaseInWorldFrame());
 
             Position target_in_footprint = Position(0,0,height) + orinetationFootprintToBase.inverseRotate(target_in_baselink);
@@ -687,8 +840,9 @@ using namespace free_gait;
             target_in_odom = robot_state_.getPositionWorldToBaseInWorldFrame()
                 + robot_state_.getOrientationBaseToWorld().rotate(target_in_baselink);
 
-//            std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
-//            std::cout<<"target_in_odom   "<<target_in_odom<<std::endl;
+            //std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
+            //std::cout<<"target_in_odom   "<<target_in_odom<<std::endl;
+            //std::cout<<"========================"<<std::endl;
 //            std::cout<<"robot_state_.getPositionWorldToBaseInWorldFrame()  "<<robot_state_.getPositionWorldToBaseInWorldFrame()<<std::endl;
 //            std::cout<<"robot_state_.getOrientationBaseToWorld().rotate(target_in_baselink)"<<robot_state_.getOrientationBaseToWorld().rotate(target_in_baselink)<<std::endl;
 //            std::cout<<"$$$$$$$$$$$$$$$$$$$$$$$$"<<std::endl;
@@ -706,9 +860,9 @@ using namespace free_gait;
                 Position displace_of_angular = Position(desired_angular_velocity_.cross(robot_state_.getPositionBaseToHipInBaseFrame(limb)));
 
                 if(limb == free_gait::LimbEnum::LF_LEG || limb == free_gait::LimbEnum::RF_LEG)
-                  crawl_support_margin = 0.05;
+                  crawl_support_margin = 0.15;
                 else
-                  crawl_support_margin = 0.05;//0.15
+                  crawl_support_margin = 0.10;//0.15
 //                Pose start_pose;
                 if(limb == free_gait::LimbEnum::LF_LEG)
                   {
@@ -794,6 +948,7 @@ using namespace free_gait;
               }
             footstep_msg_.profile_height = profile_height;
             footstep_msg_.profile_type = profile_type;
+            footstep_msg_.average_velocity = 0.15;
 
 //            std::cout<<"#########################"<<std::endl;
 //            std::cout<<"frame: "<<frame<<std::endl;
@@ -910,18 +1065,24 @@ using namespace free_gait;
                                                                    limb, "odom"))
                       {
                         ROS_ERROR("Failed to Find a optimized foothold");
+                        target_in_odom = last_step_foothold[i];
+                        //target_optimized = last_step_foothold[i];
                         kindr_ros::convertToRosGeometryMsg(target_in_odom,
                                                            footstep_msg_.target.point);
                         kindr_ros::convertToRosGeometryMsg(Vector(0,0,1), footstep_msg_.surface_normal.vector);
 
                       }else{
                         ROS_WARN("success to Find a optimized foothold");
+                        Position target_optimized_before=target_optimized;
                         kindr_ros::convertToRosGeometryMsg(target_optimized,
                                                            footstep_msg_.target.point);
                         kindr_ros::convertToRosGeometryMsg(footstepOptimization->getSurfaceNormal(target_optimized),
                                                            footstep_msg_.surface_normal.vector);
-                        footstep_msg_.profile_type = "square";
-                        footstep_msg_.profile_height = 0.23;
+                        if(target_optimized.z()-target_optimized_before.z()>0.05){
+                            footstep_msg_.profile_type = "square";
+                            footstep_msg_.profile_height = 0.23;
+                        }
+
                       }
                   }else{
                     kindr_ros::convertToRosGeometryMsg(target_optimized,
@@ -931,6 +1092,7 @@ using namespace free_gait;
 
 
                   }
+
 
                 footstep_msg_.target.header.frame_id = "odom";
                 ROS_WARN_STREAM("target before optimized :"<<target_in_odom<<std::endl
@@ -942,6 +1104,19 @@ using namespace free_gait;
                 std::cout<<"if(frame==odom)"<<std::endl;
                 std::cout<<"stance to reach: "<<stance_to_reach[limb]<<std::endl;
                 std::cout<<"#########################"<<std::endl;
+
+                if(i==0){
+                    last_step_foothold[0]=target_optimized;
+                }
+                if(i==1){
+                    last_step_foothold[1]=target_optimized;
+                }
+                if(i==2){
+                    last_step_foothold[2]=target_optimized;
+                }
+                if(i==3){
+                    last_step_foothold[3]=target_optimized;
+                }
 
                 std_msgs::ColorRGBA color,color_test;
                 color.a = 1;
@@ -1091,7 +1266,8 @@ using namespace free_gait;
                                                            footstep_msg_.surface_normal.vector);
 
                        footstep_msg_.profile_type = "square";
-//                       profile_height = footstepOptimization->getMaxObstacleHeight(target_optimized,robot_state_,limb);
+                       //profile_height = footstepOptimization->getMaxObstacleHeight(target_optimized,robot_state_,limb);
+                       //std::cout<<"profile_height          "<<profile_height<<std::endl;
                        ROS_WARN_STREAM("target after optimized :"<<target_in_footprint<<std::endl);
                       }
                   }else{
@@ -1201,7 +1377,7 @@ using namespace free_gait;
             footstep_msg_.ignore_for_pose_adaptation = false;
             if(crawl_flag)
               {
-                footstep_msg_.average_velocity = 0.3;
+                footstep_msg_.average_velocity = 0.15;
                 footstep_msg_.profile_height = 0.13;
                 footstep_msg_.profile_type = "square";
               }
@@ -1337,10 +1513,14 @@ using namespace free_gait;
       P_CoM_desired_ = 0.25 * P_CoM_desired_;
 
       LinearVelocity current_vel = robot_state_.getLinearVelocityBaseInWorldFrame();
+      //std::cout<<"current_vel  "<<current_vel<<std::endl;
 //      current_vel.z() = 0;
       LinearVelocity vd = desired_linear_velocity_world_;
       desired_base_pose_.getPosition() = P_CoM_desired_;
+//      std::cout<<"P_CoM_desired_     "<<P_CoM_desired_<<std::endl;
       P_CoM_desired_ = P_CoM_desired_ + Position(t_stance_*vd);
+//      std::cout<<"Position(t_stance_*vd);  "<<Position(t_stance_*vd)<<std::endl;
+//      std::cout<<"P_CoM_desired_     "<<P_CoM_desired_<<std::endl;
 
       std_msgs::ColorRGBA color;
       color.a = 1;
@@ -1554,8 +1734,8 @@ using namespace free_gait;
             free_gait_msgs::BaseAuto baseMotion;//cannot change to baseTarget
             //baseMotion.target.pose.position.z = height_;
             baseMotion.height = height_;
-            baseMotion.average_linear_velocity = 0.10;//2*desired_linear_velocity.norm();  0.02
-            baseMotion.average_angular_velocity = 0.10;//5*desired_angular_velocity.norm(); 0.05
+            baseMotion.average_linear_velocity = 0.05;//2*desired_linear_velocity.norm();  0.02
+            baseMotion.average_angular_velocity = 0.05;//5*desired_angular_velocity.norm(); 0.05
             baseMotion.ignore_timing_of_leg_motion = true;
             baseMotion.support_margin = crawl_support_margin;
 

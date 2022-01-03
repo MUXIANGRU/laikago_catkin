@@ -21,7 +21,7 @@
 #include "balance_controller/ros_controler/gazebo_state_hardware_interface.hpp"
 #include "robot_state_lcm_hardware_interface.hpp"
 #include "single_leg_test/model_test_header.hpp"
-
+//#include "legodom.h"
 #include <control_toolbox/pid.h>
 
 #include <pluginlib/class_list_macros.hpp>
@@ -40,6 +40,7 @@
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/WrenchStamped.h"
 #include "std_msgs/Time.h"
+#include "geometry_msgs/PoseWithCovarianceStamped.h"
 
 #include "Eigen/Dense"
 #include "Eigen/LU"
@@ -101,6 +102,7 @@ namespace balance_controller {
      */
     std::shared_ptr<free_gait::State> robot_state_;
     std::shared_ptr<free_gait::State> robot_state;
+    //std::shared_ptr<quadruped_odom::QuadrupedEstimation> odom_ptr_;
     Position base_desired_position;
     RotationQuaternion base_desired_rotation;
     LinearVelocity base_desired_linear_velocity;
@@ -141,6 +143,7 @@ namespace balance_controller {
     void rf_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
     void rh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
     void lh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr& msg);
+    void contactProCB(const std_msgs::Float64MultiArray::ConstPtr& msg);
 
     void enforceJointLimits(double &command, unsigned int index);
     double computeTorqueFromPositionCommand(double command, int i, const ros::Duration& period);
@@ -157,6 +160,7 @@ namespace balance_controller {
     ros::Publisher joint_command_pub_, base_command_pub_, base_actual_pub_, joint_actual_pub_,
     leg_state_pub_, contact_desired_pub_, leg_phase_pub_, desired_robot_state_pub_, actual_robot_state_pub_,
     motor_status_word_pub_, vmc_info_pub_, desired_vmc_info_pub_,pos_error_pub,vel_error_pub;
+    double z_height;
     std::vector<geometry_msgs::Pose> pos_error_;
     std::vector<geometry_msgs::Twist> vel_error_;
     std::vector<nav_msgs::Odometry> base_command_pose_, base_actual_pose_;
@@ -181,16 +185,30 @@ namespace balance_controller {
 
     int delay_counts[4];
 
-    bool real_robot, ignore_contact_sensor,log_data;
+    bool real_robot, ignore_contact_sensor,log_data,my_log;
 
     double initial_pressure[4];
     double contact_pressure_bias;
 
+    //JUST TEST FOR KINEMATICS
+    //getPositionWorldToFootInWorldFrame
+    //getPositionWorldToBaseInWorldFrame
+    Pose T_LF,T_RF,T_RH,T_LH;
+    Position base_in_world;
+    RotationQuaternion base_orientation;
+    geometry_msgs::PoseWithCovarianceStamped foot_odom;
+    Eigen::Vector3d P_LF,P_RF,P_RH,P_LH,pre_P_LF,pre_p_RF,pre_P_RH,pre_P_LH,
+    P_LF_w,P_RF_w,P_RH_w,P_LH_w,P_LF_r,P_RF_r,P_RH_r,P_LH_r;
+    std_msgs::Float64MultiArray footpos_delta;
+    Eigen::Vector3d LF_foot_Pos_delta,RF_foot_Pos_delta,RH_foot_Pos_delta,LH_foot_Pos_delta;
+    double N_contact,z_delta,x_delta,y_delta,pre_pos;
+    Eigen::Vector3d POSE_IN_WORLD;
+    //geometry_msgs::TwistStamped vel_test;
 
     //FOR Slip detection
-    ros::Publisher footVelPub_;
-    std_msgs::Float64MultiArray foot_vel;
-    ros::Subscriber lf_contact_forceSub_,rf_contact_forceSub_,lh_contact_forceSub_,rh_contact_forceSub_;
+    ros::Publisher footVelPub_,velPub_;
+    std_msgs::Float64MultiArray foot_vel,foot_contact;
+    ros::Subscriber lf_contact_forceSub_,rf_contact_forceSub_,lh_contact_forceSub_,rh_contact_forceSub_,contactPro_Sub_;
     geometry_msgs::WrenchStamped lf_contact_force,rf_contact_force,lh_contact_force,rh_contact_force;
 
   };

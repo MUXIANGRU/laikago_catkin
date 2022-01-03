@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="front_kinect_camera">
 
-  <xacro:macro name="front_kinect_camera" params="prefix:=front_camera robot_namespace:=/">
+  <xacro:macro name="front_kinect_camera" params="prefix:=camera robot_namespace:=/">
     <!-- Create kinect reference frame -->
     <!-- Add mesh for kinect -->
     <link name="${prefix}_link">

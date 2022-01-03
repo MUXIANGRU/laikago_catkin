@@ -42,6 +42,8 @@
 //free_gait
 #include "free_gait_msgs/RobotState.h"
 
+#include<geometry_msgs/TwistWithCovarianceStamped.h>
+#include<geometry_msgs/PoseWithCovarianceStamped.h>
 namespace balance_controller {
 
 class SimRobotStateHardwareInterface : public gazebo_ros_control::RobotHWSim//public hardware_interface::RobotHW, public hardware_interface::HardwareInterface
@@ -66,7 +68,11 @@ public:
   void writeJoints();
   void readStates();
   bool setControlMethod(const std::string& method);
+  void poseCB(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
+  void velCB(const geometry_msgs::TwistWithCovarianceStampedConstPtr& msg);
 protected:
+  ros::NodeHandle node_handle_;
+  ros::Subscriber pose_sub,vel_sub;
   // Methods used to control a joint.
   enum ControlMethod {EFFORT, POSITION, POSITION_PID, VELOCITY, VELOCITY_PID, STANCE_LEG};
 
@@ -141,6 +147,8 @@ protected:
   double position[3], orinetation[4], linear_vel[3], angular_vel[3], contact_pressure[4];
   int foot_contact[4], motor_status_word[12], mode_of_joint[12];
   free_gait_msgs::RobotState actual_robot_state_;
+  double pre[3];
+  double vel_glx[3];
 };
 
 typedef boost::shared_ptr<SimRobotStateHardwareInterface> SimRobotStateHardwareInterfacePtr;

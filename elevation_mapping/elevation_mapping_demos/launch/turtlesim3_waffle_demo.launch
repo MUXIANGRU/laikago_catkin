@@ -8,7 +8,7 @@
 
   <!-- Start gazebo server with turtlebot3_house scene. -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name"    value="$(find simpledog)/worlds/test_terrain.world"/>
+    <arg name="world_name"    value="$(find simpledog)/worlds/testgp.world"/>
     <arg name="paused"        value="false"/>
     <arg name="use_sim_time"  value="true"/>
     <arg name="gui"           value="false"/>

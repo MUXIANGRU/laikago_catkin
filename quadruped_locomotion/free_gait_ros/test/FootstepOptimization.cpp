@@ -69,13 +69,13 @@ bool FootstepOptimization::getOptimizedFoothold(free_gait::Position& nominal_foo
   int i = 0,j=0;
   //只要满足通过性地图条件,就不在选择新的落脚点
   //和地图分辨率并没有关系,地图分辨率只会在名义不满足的情况下增加解的域
-    for(grid_map::CircleIterator iterator(traversability_map_, center, radius); !iterator.isPastEnd(); ++iterator)
+    for(grid_map::SpiralIterator iterator(traversability_map_, center, radius); !iterator.isPastEnd(); ++iterator)
     {
         std::cout<<++j<<std::endl;
         grid_map::Index index;
         traversability_map_.getIndex(center,index);
         //Position position(nominal_foothold_in_map(0), nominal_foothold_in_map(1));
-      if(traversability_map_.at("traversability", *iterator) > 0.85)
+      if(traversability_map_.at("traversability", *iterator) > 0.75)
         {
           ROS_WARN("traversability_map_ SATISFIEED!!!!!!!");
           if(checkKinematicsConstriants(limb, *iterator))
@@ -93,7 +93,7 @@ bool FootstepOptimization::getOptimizedFoothold(free_gait::Position& nominal_foo
                     ROS_INFO("Find a new foothold");
                   }else{
                     ROS_INFO("Keep the foothold");
-                    return false;
+                    //return false;
                   }
                 return true;
             }else{
@@ -108,8 +108,8 @@ bool FootstepOptimization::getOptimizedFoothold(free_gait::Position& nominal_foo
                     ROS_INFO("Find a new foothold");
                   }else{
                     ROS_INFO("adapt the foothold to a true height");
-                    nominal_foothold.z()  = traversability_map_.at("elevation", index);
-                    return false;
+                    nominal_foothold.z()  = traversability_map_.at("elevation_inpainted", index);
+                    //return false;
                   }
                 return true;
             }
@@ -148,7 +148,11 @@ double FootstepOptimization::getMaxObstacleHeight(free_gait::Position& nominal_f
           max_height = height;
         }
     }
-  return max_height - 0.5*(end_foot_position(2) + start_foot_position(2));
+  std::cout<<"----------------------------------"<<std::endl;
+  std::cout<<"max_height    "<<max_height<<std::endl;
+  std::cout<<"----------------------------------"<<std::endl;
+  return (max_height - 0.5*(end_foot_position(2) + start_foot_position(2)))>0.05?
+              (max_height - 0.5*(end_foot_position(2) + start_foot_position(2))):0.05;
 
 }
 
@@ -156,7 +160,7 @@ bool FootstepOptimization::checkKinematicsConstriants(const free_gait::LimbEnum&
                                                       const grid_map::Index& index)
 {
 
-  double leg_lenth = 0.5;
+  double leg_lenth = 0.4;
   Position hip_in_base = robot_state_.getPositionBaseToHipInBaseFrame(limb);
   Position foothold_in_map, hip_in_map;//, hip_in_world;
 //  Position center_of_map;

@@ -28,6 +28,8 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "nav_msgs/Path.h"
 #include "cstring"
+#include "geometry_msgs/PoseArray.h"
+
 
 class GaitGenerateClient
 {
@@ -84,6 +86,7 @@ public:
   void velocityCommandCallback(const geometry_msgs::TwistConstPtr& twist);
   void gazeboCallback(const std_msgs::Float64MultiArray::ConstPtr& contact_msg);
   void footholdCallback(const foothold_planner_msgs::GlobalFootholds::ConstPtr& foothold_msg);
+  void footPrintPathCallback(const nav_msgs::Path::ConstPtr& msg);
 
   std::string getLimbStringFromLimbEnum(const free_gait::LimbEnum& limb) const;
 
@@ -97,6 +100,10 @@ public:
 
   Pose getDesiredBasePose();
 
+  bool checkSegmentIsArrived();
+  void findNextNearestPoint();
+  void updateVelocityCommand();
+
   std::vector<LinearVelocity> current_velocity_buffer_;
   bool ignore_vd;
 
@@ -105,7 +112,7 @@ public:
 
 private:
   ros::NodeHandle nodeHandle_;
-  ros::Subscriber velocity_command_sub_,gazebo_contactsub_,single_step_planningsub_;
+  ros::Subscriber velocity_command_sub_,gazebo_contactsub_,single_step_planningsub_,pathFootprintSubscriber_;
   ros::ServiceServer gaitSwitchServer_, stepParameterServer_;
   ros::Publisher foot_optimized_marker_pub_,foot_marker_pub_, com_proj_marker_pub_, desired_base_com_marker_pub_, support_polygon_pub_, weight_pub_, desired_com_path_pub_;
   ros::ServiceClient triggerPlanningClient;
@@ -166,6 +173,18 @@ private:
   foothold_planner_msgs::GlobalFootholds single_step_foothold;
   //foothold_planner::GlobalFootholdPlan default_plan;
 //  std::vector<LinearVelocity> current_velocity_buffer_;
+
+  std::vector<Position> last_step_foothold;
+
+  geometry_msgs::PoseStamped  next_pose;
+  geometry_msgs::PoseArray next_pose_array;
+  nav_msgs::Path fixed_path;
+  geometry_msgs::Pose currentPoint_,nextNearestPoint_;
+  double disThreshold_,yawThreshold_;
+  bool use_auto_planning;
+  bool segmentIsArrived;
+  double current_yaw,target_yaw;
+  geometry_msgs::Twist cmd_;
 
 
 

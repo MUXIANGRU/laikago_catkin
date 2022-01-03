@@ -32,6 +32,7 @@ namespace balance_controller{
     robot_state.reset(new free_gait::State);
     robot_state->initialize(limbs_, branches_);
 
+
     for(auto limb : limbs_)
       {
         limbs_state[limb].reset(new StateSwitcher);
@@ -79,8 +80,10 @@ namespace balance_controller{
   {
     ROS_INFO("Initializing RosBalanceController");
     //! WSHY: base balance QP controller
+   // odom_ptr_.reset(new quadruped_odom::QuadrupedEstimation(node_handle,robot_state));
     contact_distribution_.reset(new ContactForceDistribution(node_handle, robot_state));
     virtual_model_controller_.reset(new VirtualModelController(node_handle, robot_state, contact_distribution_));
+    node_handle.param("/my_log", my_log, false);
     //! WSHY: single leg controller
     single_leg_solver_.reset(new MyRobotSolver(node_handle, robot_state));
     single_leg_solver_->model_initialization();
@@ -189,6 +192,7 @@ namespace balance_controller{
         //ROS_INFO("Balance Controller coming there too");
         robot_state_handle.getJointEffortWrite()[i] = 0;
         robot_state_handle.motor_status_word_[i] = 0;
+
       }
 
     for(int i = 0;i<4;i++)
@@ -244,11 +248,21 @@ namespace balance_controller{
 //    single_leg_solver_->setvecQAct(Eigen::Vector3d(0,0,0), free_gait::LimbEnum::LH_LEG);
 
     foot_vel.data.resize(16);
+    foot_contact.data.resize(4);
     footVelPub_ = node_handle.advertise<std_msgs::Float64MultiArray>("/foot_vel_norm",1);
+    //velPub_ = node_handle.advertise<geometry_msgs::TwistStamped>("/estimated_vel",1);
+
+
     lf_contact_forceSub_ = node_handle.subscribe("/estimate_torque_lf",1,&RosBalanceController::lf_forceCB,this);
     rf_contact_forceSub_ = node_handle.subscribe("/estimate_torque_rf",1,&RosBalanceController::rf_forceCB,this);
     rh_contact_forceSub_ = node_handle.subscribe("/estimate_torque_rh",1,&RosBalanceController::rh_forceCB,this);
     lh_contact_forceSub_ = node_handle.subscribe("/estimate_torque_lh",1,&RosBalanceController::lh_forceCB,this);
+    if(real_robot){
+        contactPro_Sub_ = node_handle.subscribe("/legodom/contact_pro",1,&RosBalanceController::contactProCB,this);
+    }else{
+        contactPro_Sub_ = node_handle.subscribe("/contact_pro",1,&RosBalanceController::contactProCB,this);
+    }
+
 
     log_data_srv_ = node_handle.advertiseService("/capture_log_data", &RosBalanceController::logDataCapture, this);
 
@@ -263,9 +277,9 @@ namespace balance_controller{
     contact_sub_ = node_handle.subscribe<sim_assiants::FootContacts>(contact_topic, 1, &RosBalanceController::footContactsCallback, this);
 
     //! WSHY: Logged data publisher
-//    joint_command_pub_ = node_handle.advertise<sensor_msgs::JointState>("/balance_controller/joint_command", 1);
-//    base_command_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_command", log_length_);
-//    base_actual_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_actual", log_length_);
+    joint_command_pub_ = node_handle.advertise<sensor_msgs::JointState>("/balance_controller/joint_command", 1);
+    base_command_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_command", log_length_);
+    base_actual_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_actual", log_length_);
     leg_state_pub_ = node_handle.advertise<std_msgs::Int8MultiArray>("/log/leg_state", log_length_);
     joint_command_pub_ = node_handle.advertise<sensor_msgs::JointState>("/log/joint_command", log_length_);
     joint_actual_pub_ = node_handle.advertise<sensor_msgs::JointState>("/log/joint_state", log_length_);
@@ -277,11 +291,15 @@ namespace balance_controller{
     desired_vmc_info_pub_ = node_handle.advertise<geometry_msgs::WrenchStamped>("/log/desired_vmc_force_torque", log_length_);
     motor_status_word_pub_ = node_handle.advertise<std_msgs::Int8MultiArray>("/log/status_word", log_length_);
 
-    base_command_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_command", log_length_);
-    base_actual_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_actual", log_length_);
+//    base_command_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_command", log_length_);
+//    base_actual_pub_ = node_handle.advertise<nav_msgs::Odometry>("/log/base_actual", log_length_);
     pos_error_pub = node_handle.advertise<geometry_msgs::Pose>("/log/pos_error",log_length_);
     vel_error_pub = node_handle.advertise<geometry_msgs::Twist>("/log/twist_error",log_length_);
     ROS_INFO("Balance Controller initialized");
+    foot_odom.pose.pose.position.x=0.0;
+    foot_odom.pose.pose.position.y=0.0;
+    foot_odom.pose.pose.position.z=0.084;
+    footpos_delta.data.resize(12);
     return true;
   };
   /**
@@ -922,16 +940,170 @@ namespace balance_controller{
           }
       }
 //    lock.unlock();
+
+//    base_orientation=robot_state->getOrientationBaseToWorld();
+//    //cout<<"rotation    "<<base_orientation<<endl;
+//    Eigen::Quaterniond orient;
+//    orient.x()=base_orinetation.x();
+//    orient.y()=base_orinetation.y();
+//    orient.z()=base_orinetation.z();
+//    orient.w()=base_orinetation.w();
+//    Eigen::Matrix3d rotation_matrix_trans = orient.normalized().toRotationMatrix();
+//    P_LF.x()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::LF_LEG).getPosition().x();
+//    P_LF.y()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::LF_LEG).getPosition().y();
+//    P_LF.z()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::LF_LEG).getPosition().z();
+//    P_RF.x()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::RF_LEG).getPosition().x();
+//    P_RF.y()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::RF_LEG).getPosition().y();
+//    P_RF.z()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::RF_LEG).getPosition().z();
+//    P_LH.x()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::LH_LEG).getPosition().x();
+//    P_LH.y()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::LH_LEG).getPosition().y();
+//    P_LH.z()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::LH_LEG).getPosition().z();
+//    P_RH.x()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::RH_LEG).getPosition().x();
+//    P_RH.y()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::RH_LEG).getPosition().y();
+//    P_RH.z()=robot_state->getPoseFootInBaseFrame(free_gait::LimbEnum::RH_LEG).getPosition().z();
+
+//    POSE_IN_WORLD.x()=foot_odom.pose.pose.position.x;
+//    POSE_IN_WORLD.y()=foot_odom.pose.pose.position.y;
+//    POSE_IN_WORLD.z()=foot_odom.pose.pose.position.z;
+//    //POSE_IN_WORLD<<foot_odom.pose.pose.position.x,foot_odom.pose.pose.position.y,foot_odom.pose.pose.position.z;
+//    cout<<"POSE_IN_WORLD   "<<POSE_IN_WORLD<<endl;
+//    //cout<<rotation_matrix_trans*P_LF<<endl;
+//    P_LF_r=rotation_matrix_trans*P_LF;
+//    P_LF_w=rotation_matrix_trans*P_LF+POSE_IN_WORLD;
+////    P_LF_w.x()+=foot_odom.pose.pose.position.x;
+////    P_LF_w.y()+=foot_odom.pose.pose.position.y;
+////    P_LF_w.z()+=foot_odom.pose.pose.position.z;
+//    P_RF_r=rotation_matrix_trans*P_RF;
+//    P_RF_w=rotation_matrix_trans*P_RF+POSE_IN_WORLD;
+////    P_RF_w.x()+=foot_odom.pose.pose.position.x;
+////    P_RF_w.y()+=foot_odom.pose.pose.position.y;
+////    P_RF_w.z()+=foot_odom.pose.pose.position.z;
+//    P_RH_r=rotation_matrix_trans*P_RH;
+//    P_RH_w=rotation_matrix_trans*P_RH+POSE_IN_WORLD;
+////    P_RH_w.x()+=foot_odom.pose.pose.position.x;
+////    P_RH_w.y()+=foot_odom.pose.pose.position.y;
+////    P_RH_w.z()+=foot_odom.pose.pose.position.z;
+//    P_LH_r=rotation_matrix_trans*P_LH;
+//    P_LH_w=rotation_matrix_trans*P_LH+POSE_IN_WORLD;
+////    P_LH_w.x()+=foot_odom.pose.pose.position.x;
+////    P_LH_w.y()+=foot_odom.pose.pose.position.y;
+////    P_LH_w.z()+=foot_odom.pose.pose.position.z;
+
+//    if(pre_P_LF.x()==0.0&&pre_P_LF.y()==0.0&&pre_P_LF.z()==0.0){
+//        pre_P_LF=P_LF_r;
+//        pre_p_RF=P_RF_r;
+//        pre_P_RH=P_RH_r;
+//        pre_P_LH=P_LH_r;
+//    }
+//    if(robot_state_handle.foot_contact_[0]==1){
+//        //cout<<"first contact!!!"<<endl;
+//        footpos_delta.data[0]=P_LF_r[0]-pre_P_LF[0];
+//        footpos_delta.data[1]=P_LF_r[1]-pre_P_LF[1];
+//        footpos_delta.data[2]=P_LF_r[2]-pre_P_LF[2];
+//    }
+//    if(robot_state_handle.foot_contact_[1]==1){
+//        //cout<<"second contact!!!"<<endl;
+//        footpos_delta.data[3]=P_RF_r[0]-pre_p_RF[0];
+//        footpos_delta.data[4]=P_RF_r[1]-pre_p_RF[1];
+//        footpos_delta.data[5]=P_RF_r[2]-pre_p_RF[2];
+//    }
+//    if(robot_state_handle.foot_contact_[2]==1){
+//        //cout<<"third contact!!!"<<endl;
+//        footpos_delta.data[6]=P_RH_r[0]-pre_P_RH[0];
+//        footpos_delta.data[7]=P_RH_r[1]-pre_P_RH[1];
+//        footpos_delta.data[8]=P_RH_r[2]-pre_P_RH[2];
+//    }
+//    if(robot_state_handle.foot_contact_[3]==1){
+//        //cout<<"fourth contact!!!"<<endl;
+//        footpos_delta.data[9]=P_LH_r[0]-pre_P_LH[0];
+//        footpos_delta.data[10]=P_LH_r[1]-pre_P_LH[1];
+//        footpos_delta.data[11]=P_LH_r[2]-pre_P_LH[2];
+//    }
+//    LF_foot_Pos_delta<<footpos_delta.data[0],footpos_delta.data[1],footpos_delta.data[2];
+//    RF_foot_Pos_delta<<footpos_delta.data[3],footpos_delta.data[4],footpos_delta.data[5];
+//    RH_foot_Pos_delta<<footpos_delta.data[6],footpos_delta.data[7],footpos_delta.data[8];
+//    LH_foot_Pos_delta<<footpos_delta.data[9],footpos_delta.data[10],footpos_delta.data[11];
+//    N_contact=robot_state_handle.foot_contact_[0]+robot_state_handle.foot_contact_[1]+
+//            robot_state_handle.foot_contact_[2]+robot_state_handle.foot_contact_[3];
+//    double weight;
+//    if(N_contact==4.0){
+//        weight = 0.25;
+//    }else if(N_contact==3.0){
+//        weight=0.33;
+//    }else if(N_contact==2.0){
+//        weight=0.5;
+//    }else if(N_contact==1.0){
+//        weight=1.0;
+//    }else{
+//        weight=0.0;
+//    }
+////    std::cout<<robot_state_handle.foot_contact_[0]<<" "<<robot_state_handle.foot_contact_[1]<<" "
+////                                         <<robot_state_handle.foot_contact_[2]<<" "<<robot_state_handle.foot_contact_[3]<<std::endl;
+//    x_delta = ((LF_foot_Pos_delta.x()*robot_state_handle.foot_contact_[0]+
+//                       RF_foot_Pos_delta.x()*robot_state_handle.foot_contact_[1]+RH_foot_Pos_delta.x()*robot_state_handle.foot_contact_[2]+LH_foot_Pos_delta.x()*robot_state_handle.foot_contact_[3])*weight);
+//    y_delta = (weight)*(LF_foot_Pos_delta.y()*robot_state_handle.foot_contact_[0]+
+//            RF_foot_Pos_delta.y()*robot_state_handle.foot_contact_[1]+RH_foot_Pos_delta.y()*robot_state_handle.foot_contact_[2]+LH_foot_Pos_delta.y()*robot_state_handle.foot_contact_[3]);
+//    z_delta = (0.25)*(P_LH_r[2]+
+//            P_LF_r[2]+P_RF_r[2]+P_RH_r[2]);
+
+//    if((robot_state_handle.foot_contact_[0]==0.0)||(robot_state_handle.foot_contact_[1]==0.0)  //当足端不接触时,默认z方向位置不变
+//            ||(robot_state_handle.foot_contact_[2]==0.0)||(robot_state_handle.foot_contact_[3]==0.0)){
+//        z_delta = pre_pos;
+//    }
+//    pre_pos = z_delta;
+//    foot_odom.pose.pose.position.x +=(-x_delta);
+//    foot_odom.pose.pose.position.y +=(-y_delta);
+//    foot_odom.pose.pose.position.z =(-z_delta+0.01);  //0.02 for foot radius???
+//    //cout<<
+//    foot_odom.pose.covariance[0]=0.005;
+//    foot_odom.pose.covariance[7]=0.005;
+//    foot_odom.pose.covariance[14]=0.005;
+
+//    pre_P_LF=P_LF_r;
+//    pre_p_RF=P_RF_r;
+//    pre_P_RH=P_RH_r;
+//    pre_P_LH=P_LH_r;
+//    base_in_world=robot_state->getPositionWorldToBaseInWorldFrame();
+//    ;
+//    cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
+//    odom_ptr_->GetLinearVelFromJointvel();
+//    vel_test.twist.linear.x=odom_ptr_->odom_vel.x();
+//    vel_test.twist.linear.y=odom_ptr_->odom_vel.y();
+//    vel_test.twist.linear.z=odom_ptr_->odom_vel.z();
+//    velPub_.publish(vel_test);
+//    //cout<<odom_ptr_->V_Jacob[0]<<endl;
+//    //cout<<odom_ptr_->odom_vel<<endl;
+//   // cout<<odom_ptr_->odom_vel_inodom<<endl;
+////    cout<<robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::LF_LEG)<<endl;
+////    cout<<robot_state->getEndEffectorVelocityInBaseForLimb(free_gait::LimbEnum::RF_LEG)<<endl;
+//    //cout<<"lf contact position:  "<<P_LF_w<<endl;
+//    //cout<<"rf contact position:  "<<P_RF_w<<endl;
+//    //cout<<"lh contact position:  "<<P_LH_w<<endl;
+//    //cout<<"rh contact position:  "<<P_RH_w<<endl;
+//    //cout<<"rf contact position:  "<<P_RF_w<<endl;
+//    //cout<<"lf contact position:  "<<P_LF<<endl;
+////    //cout<<"rf contact position:  "<<P_RF<<endl;
+////    cout<<"X  "<<foot_odom.pose.pose.position.x<<endl;
+////    cout<<"Y  "<<foot_odom.pose.pose.position.y<<endl;
+////    cout<<"Z  "<<foot_odom.pose.pose.position.z<<endl;
+////    cout<<"base pose:  "<<base_in_world<<endl;
+////    cout<<"base orientation   "<<base_orinetation<<endl;
+//    cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
     //! WSHY: data logging
-    if(log_data)//base_actual_pose_.size()<log_length_)
+    geometry_msgs::WrenchStamped vmc_force_torque, desired_vmc_ft;
+    geometry_msgs::Pose pos_error;
+    geometry_msgs::Twist twist_error;
+    geometry_msgs::Pose desired_pose, actual_pose;
+    geometry_msgs::Twist desired_twist, actual_twist;
+    nav_msgs::Odometry desire_odom, actual_odom;
+    free_gait_msgs::RobotState desired_robot_state, actual_robot_state;
+    sim_assiants::FootContacts desired_contact;
+    if(log_data||my_log)//base_actual_pose_.size()<log_length_)
       {
         motor_status_word_.push_back(status_word);
 //        std_msgs::Time current_time;
 //        current_time.data.setNow(ros::Time::now());
 //        log_time_.push_back(current_time);
-        geometry_msgs::WrenchStamped vmc_force_torque, desired_vmc_ft;
-        geometry_msgs::Pose pos_error;
-        geometry_msgs::Twist twist_error;
         vmc_force_torque.header.frame_id = "/base";
         vmc_force_torque.header.stamp = ros::Time::now();
         desired_vmc_ft.header.frame_id = "/base";
@@ -975,7 +1147,7 @@ namespace balance_controller{
         vitual_force_torque_.push_back(vmc_force_torque);
         desired_vitual_force_torque_.push_back(desired_vmc_ft);
 
-        free_gait_msgs::RobotState desired_robot_state, actual_robot_state;
+
         desired_robot_state.lf_target.target_position.resize(1);
         desired_robot_state.lf_target.target_velocity.resize(1);
         desired_robot_state.lf_target.target_force.resize(1);
@@ -1037,9 +1209,7 @@ namespace balance_controller{
 //        actual_robot_state.lh_leg_joints.velocity.resize(3);
 //        actual_robot_state.lh_leg_joints.name.resize(3);
 
-        geometry_msgs::Pose desired_pose, actual_pose;
-        geometry_msgs::Twist desired_twist, actual_twist;
-        nav_msgs::Odometry desire_odom, actual_odom;
+
 
         //! WSHY: Rotate Position and Velocity to Base Frame
         Pose current_pose_in_base;//
@@ -1079,6 +1249,8 @@ namespace balance_controller{
         actual_odom.pose.pose = actual_pose;
         actual_odom.twist.twist = actual_twist;
 
+        z_height=actual_pose.position.z;
+
         base_actual_pose_.push_back(actual_odom);
         base_command_pose_.push_back(desire_odom);
         leg_states_.push_back(leg_state);
@@ -1087,7 +1259,7 @@ namespace balance_controller{
         pos_error_.push_back(pos_error);
         vel_error_.push_back(twist_error);
 
-        sim_assiants::FootContacts desired_contact;
+
         desired_contact.foot_contacts.resize(4);
         std::vector<sensor_msgs::JointState> joint_states_leg, joint_commands_leg;
         joint_states_leg.resize(4);
@@ -1225,6 +1397,23 @@ namespace balance_controller{
 
         actual_robot_state_.push_back(actual_robot_state);
       }
+
+    if(my_log){
+        base_command_pub_.publish(desire_odom);
+        base_actual_pub_.publish(actual_odom);
+        leg_state_pub_.publish(leg_state);
+        joint_command_pub_.publish(joint_command);
+        joint_actual_pub_.publish(joint_actual);
+        contact_desired_pub_.publish(desired_contact);
+        leg_phase_pub_.publish(leg_phase);
+        desired_robot_state_pub_.publish(desired_robot_state);
+        actual_robot_state_pub_.publish(actual_robot_state);
+        vmc_info_pub_.publish(vmc_force_torque);
+        desired_vmc_info_pub_.publish(desired_vmc_ft);
+        motor_status_word_pub_.publish(status_word);
+        pos_error_pub.publish(pos_error);
+        vel_error_pub.publish(twist_error);
+    }
 
   }
 
@@ -1614,6 +1803,18 @@ namespace balance_controller{
   void RosBalanceController::lh_forceCB(const geometry_msgs::WrenchStamped::ConstPtr &msg){
         lh_contact_force.wrench.force = msg->wrench.force;
   }
+  void RosBalanceController::contactProCB(const std_msgs::Float64MultiArray::ConstPtr &msg){
+//      foot_contact.data[0]=msg->data[0];//lf
+//      foot_contact.data[1]=msg->data[1];//rf
+//      foot_contact.data[2]=msg->data[2];//rh
+//      foot_contact.data[3]=msg->data[3];//lh
+//      if(!real_robot){
+//          real_contact_.at(free_gait::LimbEnum::LF_LEG) =  foot_contact.data[0]>0.8?1:0;
+//          real_contact_.at(free_gait::LimbEnum::RF_LEG) =  foot_contact.data[1]>0.8?1:0;
+//          real_contact_.at(free_gait::LimbEnum::LH_LEG) =  foot_contact.data[3]>0.8?1:0;
+//          real_contact_.at(free_gait::LimbEnum::RH_LEG) =  foot_contact.data[2]>0.8?1:0;
+//      }
+  }
   void RosBalanceController::contactStateMachine()
   {
 
@@ -1653,7 +1854,7 @@ namespace balance_controller{
                                                                                      robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG));
           foot_vel.data[4]=sum;
           foot_vel.data[12]=f_lf_norm;
-          if((v_lf_norm<0.1*sum||v_lf_norm>10*sum)&&v_lf_norm>0.06&&f_lf_norm<30){
+          if((v_lf_norm<0.1*sum||v_lf_norm>10*sum)&&v_lf_norm>0.5){
               //ROS_WARN("LF_leg is slipping!!!!!!!!!!!!");
               foot_vel.data[8]=1;
           }else{
@@ -1670,7 +1871,7 @@ namespace balance_controller{
                                                                                      robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG));
           foot_vel.data[5]=sum;
           foot_vel.data[13]=f_rf_norm;
-          if((v_rf_norm<0.1*sum||v_rf_norm>10*sum)&&v_rf_norm>0.06&&f_rf_norm<30){
+          if((v_rf_norm<0.1*sum||v_rf_norm>10*sum)&&v_rf_norm>0.5){
               //ROS_WARN("RF_leg is slipping!!!!!!!!!!!!");
               foot_vel.data[9]=1;
           }else{
@@ -1687,7 +1888,7 @@ namespace balance_controller{
                                                                                      robot_state->isSupportLeg(free_gait::LimbEnum::LH_LEG));
           foot_vel.data[6]=sum;
           foot_vel.data[14]=f_rh_norm;
-          if((v_rh_norm<0.1*sum||v_rh_norm>10*sum)&&v_rh_norm>0.06&&f_rh_norm<30){
+          if((v_rh_norm<0.1*sum||v_rh_norm>10*sum)&&v_rh_norm>0.5){
               //ROS_WARN("RH_leg is slipping!!!!!!!!!!!!");
               foot_vel.data[10]=1;
           }else{
@@ -1704,7 +1905,7 @@ namespace balance_controller{
                                                                                      robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG));
           foot_vel.data[7]=sum;
           foot_vel.data[15]=f_lh_norm;
-          if((v_lh_norm<0.1*sum||v_lh_norm>10*sum)&&v_lh_norm>0.06&&f_lh_norm<30){
+          if((v_lh_norm<0.1*sum||v_lh_norm>10*sum)&&v_lh_norm>0.5){
               //ROS_WARN("LH_leg is slipping!!!!!!!!!!!!");
               foot_vel.data[11]=1;
           }else{
@@ -1728,20 +1929,36 @@ namespace balance_controller{
         if(real_robot && !ignore_contact_sensor)
           {
             ROS_ERROR_ONCE("real robot coming there!!!!!!!!!!!!!!!");
-            real_contact_force_.at(limb).z() = robot_state_handle.contact_pressure_[i];
-            if((robot_state_handle.contact_pressure_[i]) > 25.0)  //MXR::NOTE: FOR laikago this parameter should be changed more carefully
-              {
-                //ROS_INFO("contact!!!!!!!!!!!!!!");
-                //std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
-//                robot_state_handle.foot_contact_[i] = 1;
-                real_contact_.at(limb) = true;
-              }else {
-                //ROS_INFO("miss contact!!!!!!!!!!!!!!");
-                //std::cout<<i<<"        "<<robot_state_handle.contact_pressure_[i]<<std::endl;
-//                robot_state_handle.foot_contact_[i] = 0;
-                real_contact_.at(limb) = true;
-                        //;
-              }
+            if(z_height<=0.25){
+                real_contact_.at(limb)=foot_contact.data[i]>0.5?true:false;
+            }else{
+                            real_contact_force_.at(limb).z() = robot_state_handle.contact_pressure_[i];
+                            //cout<<"robot_state_handle.contact_pressure_[i]   "<<robot_state_handle.contact_pressure_[i]<<endl;
+                            if((robot_state_handle.contact_pressure_[i]) > 25.0)  //MXR::NOTE: FOR laikago this parameter should be changed more carefully
+                              {
+                                //ROS_INFO("contact!!!!!!!!!!!!!!");
+                                real_contact_.at(limb) = true;
+                              }else {
+                                //ROS_INFO("miss contact!!!!!!!!!!!!!!");
+                                real_contact_.at(limb) = false;
+                                        //;
+                              }
+            }
+
+//            std::cout<<"================================"<<std::endl;
+//            std::cout<<i<<"  "<<real_contact_.at(limb)<<std::endl;
+//            std::cout<<"================================"<<std::endl;
+
+//            real_contact_force_.at(limb).z() = robot_state_handle.contact_pressure_[i];
+//            if((robot_state_handle.contact_pressure_[i]) > 25.0)  //MXR::NOTE: FOR laikago this parameter should be changed more carefully
+//              {
+//                //ROS_INFO("contact!!!!!!!!!!!!!!");
+//                real_contact_.at(limb) = true;
+//              }else {
+//                //ROS_INFO("miss contact!!!!!!!!!!!!!!");
+//                real_contact_.at(limb) = false;
+//                        //;
+//              }
           }
 
 
@@ -1858,15 +2075,19 @@ namespace balance_controller{
     /****************
 * TODO(Shunyao) : change contact state for the early or late contact
 ****************/
-//    unsigned int i = 0;
+    unsigned int i = 0;
       ROS_WARN_ONCE("FOOT CALLBACK!!!!!!!!");
     for(unsigned int i = 0;i<foot_contacts->foot_contacts.size();i++)
       {
         auto contact = foot_contacts->foot_contacts[i];
         free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
 //        ROS_INFO("swing time for leg %d is : %f", i, t_sw0.at(limb).toSec());
+//        real_contact_.at(limb) = contact.is_contact;
+//        real_contact_force_.at(limb).z() = contact.contact_force.wrench.force.z;
         real_contact_.at(limb) = contact.is_contact;
         real_contact_force_.at(limb).z() = contact.contact_force.wrench.force.z;
+//        real_contact_.at(static_cast<free_gait::LimbEnum>(0))=0;
+//        real_contact_.at(static_cast<free_gait::LimbEnum>(3))=0;
 //        if(contact.is_contact)
 //          limbs_state.at(limb)->setState(StateSwitcher::States::StanceNormal);
 //        else
@@ -2030,8 +2251,10 @@ namespace balance_controller{
                       std_srvs::Empty::Response& res)
   {
     ROS_INFO("Call to Capture Log Data");
+    cout<<"desired_robot_state_.size()   "<<desired_robot_state_.size()<<endl;
     for(int index = 0; index<desired_robot_state_.size(); index++)
       {
+        cout<<"index   "<<index<<endl;
         base_command_pub_.publish(base_command_pose_[index]);
         base_actual_pub_.publish(base_actual_pose_[index]);
         leg_state_pub_.publish(leg_states_[index]);
